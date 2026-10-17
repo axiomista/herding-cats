@@ -31,8 +31,8 @@ test("owner must resolve to a Box user with no flag", () => {
 });
 
 test("due date must be absolute or absent", () => {
-  assert.equal(finding("untracked", { task: undefined, commitment: { ...c, due: undefined, dueAbsolute: true } }).certainty, "high");
-  const rel = finding("untracked", { task: undefined, commitment: { ...c, due: undefined, dueAbsolute: false, flags: ["date relative"] } });
+  assert.equal(finding("untracked", { task: undefined, score: 40, commitment: { ...c, due: undefined, dueAbsolute: true } }).certainty, "high");
+  const rel = finding("untracked", { task: undefined, score: 40, commitment: { ...c, due: undefined, dueAbsolute: false, flags: ["date relative"] } });
   assert.equal(rel.checks.dueDate, false);
   assert.equal(rel.certainty, "low");
 });
@@ -46,4 +46,11 @@ test("pairing needs 90 or more with no rival within 10 points", () => {
 
 test("untracked findings have no pairing check", () => {
   assert.ok(!("pairing" in finding("untracked", { task: undefined, score: 40 }).checks));
+});
+
+test("untracked is low when a task scored as a possible match but went elsewhere", () => {
+  const f = finding("untracked", { task: undefined, score: 100 });
+  assert.equal(f.checks.pairing, false);
+  assert.equal(f.certainty, "low");
+  assert.equal(finding("untracked", { task: undefined, score: 59 }).certainty, "high");
 });

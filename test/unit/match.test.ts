@@ -128,3 +128,25 @@ test("fingerprints are stable and readable", () => {
     "untracked|2532048604610|replace-break-room-tuna");
   assert.equal(fingerprint("orphan", undefined, { ...task, id: "T6", fileId: "sync02" }), "orphan|sync02|task-T6");
 });
+
+test("a restatement worded too differently to merge folds into the commitment holding its task", () => {
+  const cs = seedCommitments();
+  const c01 = cs.find((c) => c.id === "C01")!;
+  c01.mentions = [];
+  // The live model's wording of the sync01 restatement: 59 against C01, 100 against T1.
+  cs.push({ ...c01, id: "C01-live", fileId: "sync01", text: "book the Great Hall",
+    evidence: "Tuxedo is still working on booking the Great Hall for the all-paws." });
+  const { findings } = matchFolder(cs, seedTasks(), allFiles, MATCH_DEFAULTS);
+  assert.equal(findings.find((f) => f.task?.id === "T1")?.bucket, "matched");
+  assert.ok(!findings.some((f) => f.commitment?.id === "C01-live"), "no untracked finding for the restatement");
+  assert.deepEqual(c01.mentions.map((m) => m.fileId), ["sync01"]);
+});
+
+test("a different owner's commitment that loses the task stays untracked", () => {
+  const cs = seedCommitments();
+  const c01 = cs.find((c) => c.id === "C01")!;
+  cs.push({ ...c01, id: "other", owner: "Pixel", ownerUserId: people.users.vanessa, text: "book the Great Hall" });
+  const f = matchFolder(cs, seedTasks(), allFiles, MATCH_DEFAULTS).findings.find((x) => x.commitment?.id === "other");
+  assert.equal(f?.bucket, "untracked");
+  assert.equal(f?.score, 100);
+});

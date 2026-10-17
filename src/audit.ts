@@ -41,7 +41,11 @@ function certaintyLine(f: Finding): string {
 
 function matchLine(e: AuditEntry): string {
   const f = e.finding;
-  if (f.bucket === "untracked") return `no task scored above ${MATCH_DEFAULTS.possibleThreshold}`;
+  if (f.bucket === "untracked") {
+    return (f.score ?? 0) >= MATCH_DEFAULTS.possibleThreshold
+      ? `best task scored ${f.score} but is paired with another commitment`
+      : `no task scored above ${MATCH_DEFAULTS.possibleThreshold}`;
+  }
   if (f.bucket === "orphan") return `no commitment scored above ${MATCH_DEFAULTS.possibleThreshold}`;
   return `task ${f.task?.id} scored ${e.matchScore ?? f.score}`;
 }

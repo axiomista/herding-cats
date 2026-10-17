@@ -1,6 +1,7 @@
 // npm run eval: scans the live folder in dry run and scores it against the answer key.
 // `npm run eval -- --record` also saves each file's AI answers under the prompt version, as
-// fixtures for the replay test. Uses AI units: run it after prompt or matching changes.
+// fixtures for the replay test. `-- --state <file>` saves the full findings as JSON.
+// Uses AI units: run it after prompt or matching changes.
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { loadConfig } from "../src/config.js";
 import { runCycle } from "../src/engine/cycle.js";
@@ -10,6 +11,8 @@ import { type AnswerKey, score } from "../src/score.js";
 import { buildEngine } from "../src/server.js";
 
 const record = process.argv.includes("--record");
+const stateArg = process.argv.indexOf("--state");
+const statePath = stateArg > 0 ? process.argv[stateArg + 1] : undefined;
 const key = JSON.parse(readFileSync("seed/answer_key.json", "utf8")) as AnswerKey;
 
 const config = loadConfig({ ...process.env, MODE: "dry-run" });
@@ -48,6 +51,7 @@ const started = Date.now();
 const summary = await runCycle(engine, "all", { trigger: "full_scan", full: true });
 const report = score(engine.state.toAppState(), key);
 console.log(JSON.stringify({ seconds: (Date.now() - started) / 1000, summary, report }, null, 2));
+if (statePath) writeFileSync(statePath, `${JSON.stringify(engine.state.toAppState(), null, 2)}\n`);
 
 if (record) {
   const dir = `test/fixtures/${PROMPT_VERSION}`;

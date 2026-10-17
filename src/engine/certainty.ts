@@ -16,6 +16,9 @@ export function certaintyChecks(f: Omit<Finding, "certainty" | "checks">, cfg: C
   }
   if (c && f.task) {
     checks.pairing = (f.score ?? 0) >= cfg.highCertaintyScore && (f.score ?? 0) - (f.rivalScore ?? 0) >= cfg.rivalGap;
+  } else if (c && f.bucket === "untracked" && (f.score ?? 0) >= cfg.possibleThreshold) {
+    // A task scored as a possible match but went to another commitment: a person decides.
+    checks.pairing = false;
   }
   checks.bucket = AUTO_BUCKETS.has(f.bucket);
   return checks;

@@ -88,11 +88,26 @@ export function matchFolder(commitments: Commitment[], tasks: TrackerTask[], sca
     findings.push({ id: findingId(fp), bucket, commitment: c, task: t, score, rivalScore: rival, fingerprint: fp });
   };
 
+  // An unpaired commitment whose best task is already paired with the same owner's commitment is
+  // a restatement of it, worded too differently to merge by text ("book the Great Hall").
+  const ownerKey = (c: Commitment) => c.ownerUserId ?? c.owner;
+  const claimedBySameOwner = (ci: number): number | undefined => {
+    const best = Math.max(0, ...scores[ci]);
+    if (best < cfg.matchThreshold || !ownerKey(commitments[ci])) return undefined;
+    const ti = scores[ci].indexOf(best);
+    const holder = [...pairedC].find(([, p]) => p.ti === ti)?.[0];
+    return holder !== undefined && ownerKey(commitments[holder]) === ownerKey(commitments[ci]) ? holder : undefined;
+  };
+
   commitments.forEach((c, ci) => {
     const pair = pairedC.get(ci);
     if (!pair) {
       const best = Math.max(0, ...scores[ci]);
-      if (c.status === "open") add("untracked", c, undefined, best);
+      const holder = c.status === "open" ? claimedBySameOwner(ci) : undefined;
+      if (holder !== undefined) {
+        const h = commitments[holder];
+        h.mentions = [...(h.mentions ?? []), { fileId: c.fileId, evidence: c.evidence }, ...(c.mentions ?? [])];
+      } else if (c.status === "open") add("untracked", c, undefined, best);
       else setAside.push(c);
       return;
     }

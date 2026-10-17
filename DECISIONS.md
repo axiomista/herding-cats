@@ -46,4 +46,6 @@ None. The full design is built.
 21. **Deploy role trust** is limited to the repository's `production` GitHub environment, which `deploy.yml` uses.
 22. **Docker image contents.** `dist/`, production `node_modules`, `prompts/`, `config/` and `seed/answer_key.json` (for `POST /api/score`). Test fixtures and seed docs are left out, so `FAKE_BOX=1` is a local mode only.
 23. **Past due dates.** Box rejects a task due date in the past with a 400 (seen live while seeding). `createTask` then creates the task without a due date, and the audit `change` line says so; the outcome stays `ok`.
-24. **Express 5** is what `npm install express` resolves to today; the spec names no version.
+24. **Restatements that only the task connects.** Found on the first live eval: the model wrote the sync01 restatement as "book the Great Hall", which scores 59 against C01 (below the dedupe threshold) but 100 against T1. An unpaired open commitment whose best task scores 85 or more and is already paired with the same owner's commitment now becomes a mention of that commitment, not an untracked finding.
+25. **Untracked needs a clean miss.** An untracked finding is high certainty only if no task scored 60 or more; otherwise its pairing check fails and it is held. This keeps the audit line "no task scored above 60" true and stops a near-duplicate from becoming an automatic task.
+26. **Express 5** is what `npm install express` resolves to today; the spec names no version.
