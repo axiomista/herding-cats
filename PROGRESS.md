@@ -51,6 +51,13 @@ Overnight offline build on branch `overnight/build` (not pushed). Source of trut
   - `ecr_repository_url`: `233436818035.dkr.ecr.us-west-2.amazonaws.com/herding-cats`
   - `secret_arn`: `arn:aws:secretsmanager:us-west-2:233436818035:secret:herding-cats/env-Kyj8DE` (empty until set by hand)
 
+## First deploy notes (2026-10-17)
+
+- Image `herding-cats:b5aa1c36b36e8f1309ab43208bc9bd5c0d74efcb` pushed to ECR (linux/amd64).
+- A fresh account creates ECS's service-linked roles on first use (`AWSServiceRoleForECS`, `AWSServiceRoleForElasticLoadBalancing`, `AWSServiceRoleForApplicationAutoScaling_ECSService`), and the first calls fail while the roles propagate. All three exist now, so later deploys are not affected.
+- The `herding-cats/env` secret must be key/value JSON with the exact key names; a malformed key name stopped every task ("did not contain json key BOX_CLIENT_ID"), and the circuit breaker failed the deployment.
+- The Express endpoint already includes `https://`; `service_url` now adds the scheme only if it is missing. Secret entries are sorted to match what ECS returns, so plans show no reordering diff.
+
 ## Next: needs Box credentials
 
 1. Record live fixtures to a separate folder (for example `npm run eval -- --record` writing to `test/fixtures/v1-live/`), so the hand-written guard fixtures in `test/fixtures/v1/` are kept.

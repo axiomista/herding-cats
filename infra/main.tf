@@ -92,7 +92,8 @@ resource "aws_ecs_express_gateway_service" "app" {
     }
 
     dynamic "secret" {
-      for_each = local.secret_keys
+      # Sorted, as ECS returns them, so plans show no reordering diff.
+      for_each = sort(local.secret_keys)
       content {
         name       = secret.value
         value_from = "${aws_secretsmanager_secret.env.arn}:${secret.value}::"

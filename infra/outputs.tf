@@ -1,6 +1,7 @@
 output "service_url" {
   description = "Public HTTPS URL of the service"
-  value       = "https://${aws_ecs_express_gateway_service.app.ingress_paths[0].endpoint}"
+  # Express Mode returns the endpoint with its scheme; add one only if it is missing.
+  value = startswith(aws_ecs_express_gateway_service.app.ingress_paths[0].endpoint, "https://") ? aws_ecs_express_gateway_service.app.ingress_paths[0].endpoint : "https://${aws_ecs_express_gateway_service.app.ingress_paths[0].endpoint}"
 }
 
 output "ecr_repository_url" {
