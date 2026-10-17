@@ -182,6 +182,18 @@ input[type="password"], input[type="date"] {
 }
 .bar { height: 8px; border-radius: 4px; background: var(--border); overflow: hidden; }
 .bar > div { height: 100%; border-radius: 4px; background: var(--accent); transition: width 0.3s; }
+.bar.thin { height: 6px; margin: 4px 0 2px; }
+.status .of { font-size: 14px; font-weight: 500; color: var(--muted); }
+.timer { font-size: 15px; }
+.steps { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; }
+.step { border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 2px; font-size: 13px; }
+.step-name { font-weight: 700; }
+.step.done { background: var(--good-bg); }
+.step.done .step-name { color: var(--good-text); }
+.step.current { background: var(--accent-bg); border: 2px solid var(--accent); padding: 10px 12px; }
+.step.todo { background: var(--surface); border: 1px dashed var(--border-strong); padding: 11px 13px; color: var(--muted); }
+.step-sub { color: var(--soft); }
+.step.todo .step-sub { color: var(--muted); }
 .banner { border-radius: 16px; padding: 14px 18px; display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; border: 1px solid; }
 .banner.ok { background: var(--good-surface); border-color: var(--good-border); }
 .banner.info { background: var(--surface); border-color: var(--border); }
@@ -256,11 +268,40 @@ details.fold .item { margin-top: 4px; }
   white-space: pre-wrap; overflow-wrap: anywhere;
 }
 .mono-block .fp { color: var(--muted); }
+.draft {
+  width: 100%; resize: vertical; background: var(--inset); color: var(--text);
+  border: 1px solid var(--border-strong); border-radius: 12px; padding: 12px 14px;
+  font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 13px; line-height: 1.6;
+}
+.small { font-size: 12px; overflow-wrap: anywhere; }
+.check-row { display: flex; gap: 12px; align-items: flex-start; font-size: 14px; }
+.check-row input { width: 22px; height: 22px; margin: 2px 0 0; accent-color: var(--accent); flex: none; }
+.check-row input:disabled + label { opacity: 0.7; }
 
 /* Audit */
 .page-head { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 16px; }
 .page-head .field label { font-size: 13px; color: var(--soft); }
-.audit-text { font-size: 12px; max-height: 70vh; overflow: auto; }
+.filters { display: flex; flex-wrap: wrap; gap: 8px; }
+.filter {
+  border: 1px solid var(--border); border-radius: 999px; padding: 8px 16px; min-height: 44px;
+  background: transparent; color: var(--soft); font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.filter[aria-pressed="true"] { border-color: var(--text); background: var(--text); color: var(--bg); font-weight: 700; }
+.audit-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 14px; }
+.audit-entry { border: 1px solid var(--border); border-radius: 18px; background: var(--surface); padding: 20px 22px; display: flex; flex-direction: column; gap: 12px; }
+.audit-entry.held { border-color: var(--warn-border); background: var(--warn-surface); }
+.audit-entry.error { border-color: var(--bad-border); background: var(--bad-surface); }
+.audit-title { font-size: 17px; font-weight: 700; overflow-wrap: anywhere; }
+.badge.status-applied { background: var(--good-bg); color: var(--good-text); }
+.badge.status-held { background: var(--warn-bg); color: var(--warn-text); }
+.badge.status-error { background: var(--bad-bg); color: var(--bad-text); }
+.kv { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 6px 14px; font-size: 14px; }
+.kv span { overflow-wrap: anywhere; white-space: pre-wrap; }
+.kv .k { color: var(--muted); }
+.kv .bad { color: var(--bad-text); font-size: 13px; }
+.audit-entry summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--accent-text); min-height: 32px; }
+.audit-entry pre { margin-top: 10px; font-size: 12px; }
+@media (max-width: 640px) { .kv { grid-template-columns: 1fr; gap: 2px; } .kv .k { margin-top: 6px; } }
 
 /* Accuracy */
 .scores { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }

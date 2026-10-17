@@ -5,10 +5,10 @@ import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import cookieParser from "cookie-parser";
 import express, { type NextFunction, type Request, type Response } from "express";
-import { AuditLog } from "./audit.js";
+import { AuditLog, parseEntries } from "./audit.js";
 import { createBoxClient, RealBoxGateway } from "./box.js";
 import { assertAuditOutsideScan, type Config, loadConfig } from "./config.js";
-import { applyFinding } from "./engine/apply.js";
+import { applyFinding, withFingerprint } from "./engine/apply.js";
 import { commitWrites, CycleBusyError, CycleRunner, type Engine } from "./engine/cycle.js";
 import { loadPrompt } from "./engine/extract.js";
 import { loadPeople } from "./engine/normalize.js";
@@ -22,6 +22,7 @@ import { createWebhookHandler } from "./triggers/webhook.js";
 const SESSION_COOKIE = "hc_session";
 const SESSION_MS = 12 * 60 * 60 * 1000;
 const ANSWER_KEY = "seed/answer_key.json";
+const MAX_COMMENT_CHARS = 10_000;
 
 const sameText = (a: string, b: string) => {
   const x = Buffer.from(a);
@@ -71,7 +72,9 @@ export function createApp(engine: Engine, runner: CycleRunner, opts: { secureCoo
     next();
   };
 
-  app.get("/api/state", session, (_req, res) => { res.json(state.toAppState()); });
+  app.get("/api/state", session, (_req, res) => {
+    res.json({ ...state.toAppState(), sweepIntervalMinutes: config.sweepIntervalMinutes, aiMonthlyBudget: config.aiMonthlyBudget });
+  });
 
   app.post("/api/scan", session, (_req, res) => {
     try {
@@ -99,9 +102,19 @@ export function createApp(engine: Engine, runner: CycleRunner, opts: { secureCoo
       const kind = action === "create_task" ? "task" : action === "comment" ? "comment" : undefined;
       if (!kind) { res.status(400).json({ error: "action must be create_task, comment or dismiss" }); return; }
       if (finding.proposal?.kind !== kind) { res.status(400).json({ error: `this finding has no ${kind} to write` }); return; }
+      // A comment may be edited on the page before it is posted.
+      const text = req.body?.text;
+      let override: typeof finding.proposal | undefined;
+      if (text !== undefined) {
+        if (finding.proposal.kind !== "comment" || typeof text !== "string" || !text.trim() || text.length > MAX_COMMENT_CHARS) {
+          res.status(400).json({ error: `text must be a comment of 1 to ${MAX_COMMENT_CHARS} characters` });
+          return;
+        }
+        override = { ...finding.proposal, text: withFingerprint(text, finding.fingerprint) };
+      }
       const result = await runner.exclusive(() => applyFinding({
         tracker: engine.tracker, audit: engine.audit, state, people: engine.people, now: engine.now,
-      }, finding, "click"));
+      }, finding, "click", override));
       if (result.status === "applied") state.findings = state.findings.filter((f) => f.id !== finding.id);
       res.status(result.status === "failed" ? 502 : 200).json(result);
     } catch (err) {
@@ -113,10 +126,13 @@ export function createApp(engine: Engine, runner: CycleRunner, opts: { secureCoo
   app.post("/api/mode", session, async (req, res) => {
     const mode = req.body?.mode;
     if (mode !== "dry-run" && mode !== "apply") { res.status(400).json({ error: "mode must be dry-run or apply" }); return; }
+    // applyExisting: false leaves the findings already on the page for a click.
+    const applyExisting = req.body?.applyExisting !== false;
     try {
       // Switching to apply writes the findings already on the page. It does not wait for the next sweep.
       const summary = await runner.exclusive(async () => {
         state.mode = mode;
+        if (mode === "apply") state.waiting = new Set(applyExisting ? [] : state.findings.map((f) => f.fingerprint));
         return mode === "apply" ? commitWrites(engine, "click") : { applied: 0, held: 0 };
       });
       res.json({ mode, ...summary });
@@ -129,7 +145,9 @@ export function createApp(engine: Engine, runner: CycleRunner, opts: { secureCoo
   app.get("/api/audit", session, async (req, res) => {
     const date = String(req.query.date ?? "");
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) { res.status(400).json({ error: "date must be YYYY-MM-DD" }); return; }
-    res.type("text/plain").send(await engine.audit.read(date));
+    const text = await engine.audit.read(date);
+    if (req.query.format === "json") { res.json({ date, entries: parseEntries(text) }); return; }
+    res.type("text/plain").send(text);
   });
 
   app.post("/api/score", session, (_req, res) => {

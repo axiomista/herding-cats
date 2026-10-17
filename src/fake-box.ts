@@ -136,6 +136,8 @@ export class FakeBox implements BoxGateway, TrackerAdapter {
 
   async folderAncestors() { return ["0"]; }
 
+  async folderName() { return "The Corporation"; }
+
   // TrackerAdapter
 
   async listTasks(fileId: string): Promise<TrackerTask[]> {

@@ -1,5 +1,5 @@
 // In-memory working state: findings, review queue, progress. Rebuilt by a full scan after a restart.
-import type { AppState, Commitment, ExtractedItem, Finding, Trigger } from "./types.js";
+import type { AppState, Commitment, CycleProgress, CycleRecord, ExtractedItem, Finding, Trigger } from "./types.js";
 import type { StatusChange } from "./engine/match.js";
 
 export interface FileResult {
@@ -13,7 +13,9 @@ export class State {
   mode: AppState["mode"];
   watching = false;
   lastCycle?: AppState["lastCycle"];
-  running?: { done: number; total: number };
+  running?: CycleProgress;
+  recentCycles: Partial<Record<Trigger, CycleRecord>> = {};
+  folderName?: string;
   private aiCalls = 0;
   private aiMonth = "";
   files = new Map<string, FileResult>();
@@ -28,6 +30,9 @@ export class State {
   heldLogged = new Set<string>();            // fingerprints already logged as HELD
   writing = new Set<string>();               // fingerprints whose write is in flight
   createdTasks = new Set<string>();          // IDs of tasks this process created in Box
+  // Fingerprints of findings that were ready when apply mode was turned on without applying them.
+  // Apply mode leaves them for a click; a click still writes them.
+  waiting = new Set<string>();
 
   constructor(mode: AppState["mode"]) { this.mode = mode; }
 
@@ -39,8 +44,10 @@ export class State {
 
   get aiCallsThisMonth(): number { return this.aiCalls; }
 
-  finishCycle(at: Date, trigger: Trigger, filesChecked: number): void {
-    this.lastCycle = { at: at.toISOString(), trigger, filesChecked };
+  finishCycle(at: Date, trigger: Trigger, filesChecked: number,
+    extra: { filesScanned?: number; aiCalls?: number; durationMs?: number } = {}): void {
+    this.lastCycle = { at: at.toISOString(), trigger, filesChecked, ...extra };
+    this.recentCycles[trigger] = this.lastCycle;
     this.running = undefined;
   }
 
@@ -65,6 +72,9 @@ export class State {
       files: Object.fromEntries([...this.names].map(([id, name]) => [id, { name }])),
       errors: this.errors,
       unverified: results.flatMap((r) => r.unverified),
+      recentCycles: this.recentCycles,
+      folderName: this.folderName,
+      waiting: this.findings.filter((f) => this.waiting.has(f.fingerprint)).map((f) => f.id),
     };
   }
 }

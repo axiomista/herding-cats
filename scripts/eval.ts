@@ -47,6 +47,7 @@ if (record) {
   };
   engine.gateway = {
     listFiles: (id) => real.listFiles(id),
+    folderName: (id) => real.folderName(id),
     fileText: (id) => real.fileText(id),
     getMeta: (id) => real.getMeta(id),
     setMeta: (id, v) => real.setMeta(id, v),
