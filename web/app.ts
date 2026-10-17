@@ -38,6 +38,7 @@ const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as 
 const dev = new URLSearchParams(location.search).has("dev");
 let state: AppState | undefined;
 let pollTimer: number | undefined;
+let notice = ""; // the last action's result, kept across re-renders
 
 type Child = Node | string | undefined | false;
 function h(tag: string, attrs: Record<string, string> = {}, ...children: Child[]): HTMLElement {
@@ -100,7 +101,7 @@ function renderStatus(s: AppState): void {
   scan.disabled = !!s.running;
   scan.onclick = async () => {
     const res = await post("/api/scan");
-    if (res.status === 409) $("status-msg").textContent = "A cycle is already running.";
+    notice = res.status === 409 ? "A cycle is already running." : "Full scan started.";
     await refresh();
   };
   const other = s.mode === "apply" ? "dry-run" : "apply";
@@ -114,7 +115,7 @@ function renderStatus(s: AppState): void {
       stat(s.mode === "apply" ? "Apply" : "Dry run", s.mode === "apply" ? "writes high-certainty fixes" : "writes nothing"),
       stat(last, "last cycle"),
       stat(String(s.aiCallsThisMonth), "AI calls this month")),
-    h("p", { id: "status-msg", class: "muted" }),
+    h("p", { id: "status-msg", class: "muted" }, notice),
     errors.length ? h("div", {}, h("b", {}, "Files that failed"), h("ul", { class: "plain" }, ...errors)) : "",
   );
 }
@@ -154,7 +155,7 @@ function card(f: Finding): HTMLElement {
   const send = async (action: string) => {
     const res = await post(`/api/findings/${encodeURIComponent(f.id)}/actions`, { action });
     const out = await res.json() as { change?: string; outcome?: string; error?: string; status?: string };
-    $("status-msg").textContent = out.error ?? `${out.status}: ${out.change ?? ""} ${out.outcome && out.outcome !== "ok" ? `(${out.outcome})` : ""}`;
+    notice = out.error ?? `${out.status}: ${out.change ?? ""} ${out.outcome && out.outcome !== "ok" ? `(${out.outcome})` : ""}`;
     await refresh();
   };
   if (f.proposal?.kind === "task") actions.append(button("Create task", () => send("create_task")));

@@ -12,7 +12,7 @@ It flags:
 
 Every finding cites the sentence it came from. Certain fixes can be applied automatically; uncertain ones wait for a person; every change is recorded in an audit log in Box.
 
-> **Status:** Box AI hackathon project, in progress. The sections below describe the planned design; commands and paths may not exist yet.
+> **Status:** Box AI hackathon project. The app runs end to end against a fake Box (`FAKE_BOX=1`); connecting it to live Box and AWS is next. See `PROGRESS.md` and `DECISIONS.md`.
 
 ## How it works
 
@@ -51,6 +51,13 @@ Requires Node.js 22 and a Box Platform app using Client Credentials Grant.
 npm install
 cp .env.example .env   # fill in Box credentials and folder IDs
 npm run dev            # http://localhost:3000
+```
+
+To try it with no Box account, run on the seed documents and recorded fixtures:
+
+```sh
+npm run build
+FAKE_BOX=1 DEMO_PASSCODE=meow npm start   # open http://localhost:3000, passcode "meow"; add ?dev=1 for Eval
 ```
 
 | Command | Does |
