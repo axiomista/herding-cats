@@ -3,7 +3,7 @@
 type Bucket = "superseded" | "owner_conflict" | "date_conflict" | "misfiled" | "matched" | "untracked" | "orphan";
 
 interface Commitment { fileId: string; text: string; evidence: string; owner?: string; due?: string; status: string;
-  flags?: string[]; mentions?: { fileId: string; evidence: string }[]; statusEvidence?: { fileId: string; evidence: string } }
+  flags?: string[]; mentions?: { fileId: string; evidence: string }[]; statusEvidence?: { fileId: string; evidence: string; score?: number } }
 interface TrackerTask { id: string; fileId: string; message: string; assigneeIds: string[]; due?: string; completed: boolean }
 type Proposal =
   | { kind: "task"; fileId: string; message: string; assigneeName?: string; due?: string }
@@ -31,7 +31,8 @@ const BUCKETS: { key: Bucket; title: string; blurb: string }[] = [
 ];
 
 const CHECK_LABELS: Record<string, string> = {
-  evidence: "evidence exact", owner: "owner resolved", dueDate: "date absolute", pairing: "pairing clear", bucket: "safe to apply",
+  evidence: "evidence exact", owner: "owner resolved", dueDate: "date absolute", status: "status match clear",
+  pairing: "pairing clear", bucket: "safe to apply",
 };
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;

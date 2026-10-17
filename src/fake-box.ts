@@ -170,7 +170,8 @@ export const fixturesExist = (dir = "test/fixtures/v1") => {
 };
 
 // Wires an engine to a FakeBox with config defaults, for tests and FAKE_BOX=1.
-export async function fakeEngine(overrides: { mode?: "dry-run" | "apply"; latencyMs?: number; now?: () => Date } = {}) {
+export async function fakeEngine(overrides: { mode?: "dry-run" | "apply"; latencyMs?: number; now?: () => Date;
+  fixturesDir?: string; } = {}) {
   const { loadConfig } = await import("./config.js");
   const { loadPeople } = await import("./engine/normalize.js");
   const { loadPrompt } = await import("./engine/extract.js");
@@ -178,7 +179,8 @@ export async function fakeEngine(overrides: { mode?: "dry-run" | "apply"; latenc
   const { AuditLog } = await import("./audit.js");
   const config = loadConfig({ FAKE_BOX: "1", DEMO_PASSCODE: "test", MODE: overrides.mode ?? "dry-run" });
   const people = loadPeople();
-  const box = new FakeBox({ people, auditFolderId: config.auditFolderId, latencyMs: overrides.latencyMs });
+  const box = new FakeBox({ people, auditFolderId: config.auditFolderId, latencyMs: overrides.latencyMs,
+    fixturesDir: overrides.fixturesDir });
   const state = new State(config.mode);
   const engine = {
     config, gateway: box, tracker: box, people, state, audit: new AuditLog(box),

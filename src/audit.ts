@@ -34,6 +34,9 @@ function certaintyLine(f: Finding): string {
   if ("dueDate" in checks) {
     phrases.push(!checks.dueDate ? "date relative or unresolved" : f.commitment?.due ? "date absolute" : "no date");
   }
+  if ("status" in checks) {
+    phrases.push(`status match ${f.commitment?.statusEvidence?.score}${checks.status ? "" : " needs a person"}`);
+  }
   if ("pairing" in checks) phrases.push(checks.pairing ? `pairing ${f.score}` : "pairing not clear");
   phrases.push(checks.bucket ? `bucket ${f.bucket}` : `bucket ${f.bucket} needs a person`);
   return `${f.certainty} (${phrases.join("; ")})`;

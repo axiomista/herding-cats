@@ -8,7 +8,7 @@ import type { BoxFile, Commitment, Finding, TrackerAdapter, TrackerTask, Trigger
 import { applyFinding, buildProposal, holdFinding, type WriteContext } from "./apply.js";
 import { withCertainty } from "./certainty.js";
 import { buildPrompt, extractItems, PROMPT_VERSION } from "./extract.js";
-import { applyStatusChanges, matchFolder, type StatusChange } from "./match.js";
+import { applyStatusChanges, isClosing, matchFolder, type StatusChange } from "./match.js";
 import { dedupe, type People, peopleNames, resolveDate, resolveOwner } from "./normalize.js";
 import { verifyItems } from "./verify.js";
 
@@ -110,7 +110,8 @@ async function scanFile(engine: Engine, file: BoxFile, full: boolean): Promise<{
   const statusChanges: StatusChange[] = [];
   const setAside: FileResult["setAside"] = [];
   verified.forEach((item, i) => {
-    if (item.kind === "status_change") { statusChanges.push(item); return; }
+    // The model sometimes labels a cancellation a decision but still gives its new status.
+    if (item.kind === "status_change" || isClosing(item)) { statusChanges.push(item); return; }
     if (item.kind !== "commitment") { setAside.push(item); return; }
     const owner = resolveOwner(item.owner, people, { docType: doc.docType, text, evidence: item.evidence });
     const date = resolveDate(item.due, doc.docDate);
