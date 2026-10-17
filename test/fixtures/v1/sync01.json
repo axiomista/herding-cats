@@ -1,0 +1,20 @@
+{
+  "promptVersion": "v1",
+  "file": {
+    "id": "2532581322553",
+    "name": "2026-09-15 Weekly Sync 01.md",
+    "version": "2810307594553"
+  },
+  "classify": {
+    "docType": "meeting notes",
+    "docDate": "2026-09-15",
+    "author": "Pixel",
+    "model": "hand-written fixture (prompt v1)"
+  },
+  "extract": [
+    {
+      "raw": "[\n  {\n    \"kind\": \"commitment\",\n    \"action\": \"Book the Great Hall for the all-paws meeting\",\n    \"owner\": \"Tuxedo\",\n    \"due\": \"October 23\",\n    \"refers_to\": null,\n    \"new_status\": null,\n    \"evidence\": \"Tuxedo is still working on booking the Great Hall for the all-paws. Target date is still October 23.\"\n  },\n  {\n    \"kind\": \"commitment\",\n    \"action\": \"Install 12 new full-spectrum sunbeam lamps on Floor 3\",\n    \"owner\": \"Pixel\",\n    \"due\": \"October 15\",\n    \"refers_to\": null,\n    \"new_status\": null,\n    \"evidence\": \"Pixel will install 12 new full-spectrum sunbeam lamps on Floor 3 by October 15.\"\n  },\n  {\n    \"kind\": \"commitment\",\n    \"action\": \"Order 50 cardboard boxes for the Human Acclimation Lab\",\n    \"owner\": \"Sir Reginald Biscuits\",\n    \"due\": \"October 1\",\n    \"refers_to\": null,\n    \"new_status\": null,\n    \"evidence\": \"Sir Reginald Biscuits will order 50 cardboard boxes for the Human Acclimation Lab by October 1, so humans can learn to sit in them.\"\n  },\n  {\n    \"kind\": \"commitment\",\n    \"action\": \"Complete Augmentation Module 1\",\n    \"owner\": \"Dale\",\n    \"due\": \"October 10\",\n    \"refers_to\": null,\n    \"new_status\": null,\n    \"evidence\": \"Dale will complete Augmentation Module 1 by October 10.\"\n  },\n  {\n    \"kind\": \"commitment\",\n    \"action\": \"Replace the break room tuna dispenser filter\",\n    \"owner\": \"Dale\",\n    \"due\": \"October 2\",\n    \"refers_to\": null,\n    \"new_status\": null,\n    \"evidence\": \"Dale will replace the break room tuna dispenser filter by October 2.\"\n  },\n  {\n    \"kind\": \"commitment\",\n    \"action\": \"Investigate the tuna dispenser flow\",\n    \"owner\": null,\n    \"due\": null,\n    \"refers_to\": null,\n    \"new_status\": null,\n    \"evidence\": \"The tuna dispenser is only dispensing at 60 percent, probably because of the filter.\"\n  },\n  {\n    \"kind\": \"open_question\",\n    \"action\": \"Decide whether humans may use the good couch\",\n    \"owner\": null,\n    \"due\": null,\n    \"refers_to\": null,\n    \"new_status\": null,\n    \"evidence\": \"Should humans be allowed on the good couch? Tabled indefinitely.\"\n  }\n]",
+      "model": "hand-written fixture (prompt v1)"
+    }
+  ]
+}

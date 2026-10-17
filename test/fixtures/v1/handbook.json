@@ -1,0 +1,20 @@
+{
+  "promptVersion": "v1",
+  "file": {
+    "id": "2532578853053",
+    "name": "Employee Handbook - Section 4 - Rest and Napping Policy.md",
+    "version": "2810304844253"
+  },
+  "classify": {
+    "docType": "policy",
+    "docDate": "2026-01-01",
+    "author": "Office of the COO",
+    "model": "hand-written fixture (prompt v1)"
+  },
+  "extract": [
+    {
+      "raw": "[]",
+      "model": "hand-written fixture (prompt v1)"
+    }
+  ]
+}

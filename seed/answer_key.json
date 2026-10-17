@@ -1,0 +1,125 @@
+{
+  "_about": "Ground truth for the Nyanland-Meowtani seed corpus in Box folder 'The Corporation'. Keep this file OUT of the Box folder so the extractor never sees it. seed_tasks.py reads the 'owners' and 'tasks' sections.",
+  "version": 1,
+  "box_folder": { "name": "The Corporation", "id": "428423214478" },
+
+  "owners": {
+    "_about": "Maps fictional owners to real Box users (by role key). Logins come from env vars VANESSA_LOGIN and ZAQ_LOGIN.",
+    "Sir Reginald Biscuits": "vanessa",
+    "Dale Henderson": "vanessa",
+    "Tuxedo Meowtani": "zaq",
+    "Pixel": "zaq"
+  },
+
+  "files": {
+    "kickoff": "2026-09-08 Kickoff - Project PURRFECT.md",
+    "sync01": "2026-09-15 Weekly Sync 01.md",
+    "sync02": "2026-09-29 Weekly Sync 02.txt",
+    "brainstorm": "Brainstorm - Human Augmentation Ideas.md",
+    "memo": "2026-09-22 Memo - FY27 Treat Budget.md",
+    "email": "Laser Dynamics - Email Thread Export.txt",
+    "handbook": "Employee Handbook - Section 4 - Rest and Napping Policy.md"
+  },
+
+  "commitments": [
+    {
+      "id": "C01", "source": "kickoff", "owner": "Tuxedo Meowtani", "due": "2026-10-23",
+      "action": "Book the Q4 All-Paws Meeting in the Great Hall",
+      "evidence": "Tuxedo will book the Q4 All-Paws Meeting in the Great Hall by October 23.",
+      "also_mentioned_in": [
+        { "source": "sync01", "evidence": "Tuxedo is still working on booking the Great Hall for the all-paws. Target date is still October 23." }
+      ],
+      "status": "open",
+      "expected_finding": "matched (T1); the sync01 mention must be deduplicated into this item, not counted as a second commitment"
+    },
+    {
+      "id": "C02", "source": "kickoff", "owner": "Sir Reginald Biscuits", "due": "2026-10-14",
+      "action": "Draft the posture-correction pilot protocol for review",
+      "evidence": "Sir Reginald Biscuits owns the posture-correction pilot protocol and will have a draft ready for review by October 14.",
+      "status": "open",
+      "expected_finding": "owner_conflict (T2 is assigned to zaq; document owner maps to vanessa)"
+    },
+    {
+      "id": "C03", "source": "kickoff", "owner": "Tuxedo Meowtani", "due": "2026-10-09",
+      "action": "Draft the Human Gratitude Survey (10 questions max)",
+      "evidence": "Tuxedo will draft the Human Gratitude Survey (10 questions max; humans tire easily) by October 9.",
+      "status": "open",
+      "expected_finding": "untracked"
+    },
+    {
+      "id": "C04", "source": "sync01", "owner": "Pixel", "due": "2026-10-15",
+      "action": "Install 12 full-spectrum sunbeam lamps on Floor 3",
+      "evidence": "Pixel will install 12 new full-spectrum sunbeam lamps on Floor 3 by October 15.",
+      "status": "open",
+      "expected_finding": "date_conflict (T3 due 2026-10-31; document says October 15)"
+    },
+    {
+      "id": "C05", "source": "sync01", "owner": "Sir Reginald Biscuits", "due": "2026-10-01",
+      "action": "Order 50 cardboard boxes for the Human Acclimation Lab",
+      "evidence": "Sir Reginald Biscuits will order 50 cardboard boxes for the Human Acclimation Lab by October 1, so humans can learn to sit in them.",
+      "superseded_by": { "source": "sync02", "evidence": "The Human Acclimation Lab box order is cancelled." },
+      "status": "cancelled",
+      "expected_finding": "superseded (T4 is still open; recommend closing it)"
+    },
+    {
+      "id": "C06", "source": "sync01", "owner": "Dale Henderson", "due": "2026-10-10",
+      "action": "Complete Augmentation Module 1 (Advanced Can Opening)",
+      "evidence": "Dale will complete Augmentation Module 1 by October 10.",
+      "status": "open",
+      "expected_finding": "matched (T5)"
+    },
+    {
+      "id": "C07", "source": "sync01", "owner": "Dale Henderson", "due": "2026-10-02",
+      "action": "Replace the break room tuna dispenser filter",
+      "evidence": "Dale will replace the break room tuna dispenser filter by October 2.",
+      "status": "open",
+      "expected_finding": "untracked"
+    },
+    {
+      "id": "C08", "source": "memo", "owner": "Sir Reginald Biscuits", "due": "2026-10-12",
+      "action": "Submit revised R&D treat budget (85% allocation, salmon-to-granola)",
+      "evidence": "Sir Reginald Biscuits will submit a revised R&D treat budget, reflecting the 85% allocation and the salmon-to-granola substitution, by October 12.",
+      "status": "open",
+      "expected_finding": "misfiled (T7 is attached to the brainstorm doc, but the commitment lives in the memo)"
+    },
+    {
+      "id": "C09", "source": "email", "owner": "Pixel", "due": "2026-10-20",
+      "action": "Send signed PO to Laser Dynamics (quote #LD-4471)",
+      "evidence": "I'll send you the signed PO by October 20.",
+      "status": "open",
+      "expected_finding": "untracked (note: owner must be resolved from the email sender, not the text)"
+    }
+  ],
+
+  "tasks": [
+    { "id": "T1", "file": "kickoff", "action": "complete", "assignee": "zaq",     "due": "2026-10-23", "message": "Book the Q4 All-Paws Meeting (Great Hall)",                 "expected": "matched C01" },
+    { "id": "T2", "file": "kickoff", "action": "complete", "assignee": "zaq",     "due": "2026-10-14", "message": "Draft posture-correction pilot protocol",                   "expected": "owner_conflict C02" },
+    { "id": "T3", "file": "sync01",  "action": "complete", "assignee": "zaq",     "due": "2026-10-31", "message": "Install 12 sunbeam lamps on Floor 3",                       "expected": "date_conflict C04" },
+    { "id": "T4", "file": "sync01",  "action": "complete", "assignee": "vanessa", "due": "2026-10-01", "message": "Order 50 cardboard boxes for the Human Acclimation Lab",    "expected": "superseded C05" },
+    { "id": "T5", "file": "sync01",  "action": "complete", "assignee": "vanessa", "due": "2026-10-10", "message": "Complete Augmentation Module 1 (Advanced Can Opening)",     "expected": "matched C06" },
+    { "id": "T6", "file": "sync02",  "action": "complete", "assignee": "zaq",     "due": "2026-11-01", "message": "Repaint the Hall of Ancestral Scratches",                   "expected": "orphan (no supporting text anywhere)" },
+    { "id": "T7", "file": "brainstorm", "action": "complete", "assignee": "vanessa", "due": "2026-10-12", "message": "Submit revised R&D treat budget (85% allocation)",      "expected": "misfiled C08" }
+  ],
+
+  "non_commitments": [
+    { "source": "sync01",    "kind": "open_question", "text": "Should humans be allowed on the good couch? Tabled indefinitely." },
+    { "source": "sync02",    "kind": "decision",      "text": "By decree of the Chairmeow, cardboard boxes are executive-only." },
+    { "source": "sync02",    "kind": "idea",          "text": "Pixel suggested a \"Sunbeam of the Month\" recognition program. Nobody objected, but nobody volunteered either." },
+    { "source": "brainstorm","kind": "idea",          "text": "What if Associate chairs vibrated at 25 Hz?" },
+    { "source": "brainstorm","kind": "idea",          "text": "We could maybe teach humans to purr." },
+    { "source": "brainstorm","kind": "idea",          "text": "Install a laser pointer in every conference room so meetings have a clear focal point." },
+    { "source": "brainstorm","kind": "open_question", "text": "Open question: do humans actually need eight hours of sleep, or is that a myth?" },
+    { "source": "brainstorm","kind": "idea",          "text": "Possibly a \"Nap Pod\" pilot. Would need Facilities input." },
+    { "source": "memo",      "kind": "decision",      "text": "The request is conditionally approved at 85% of the requested amount." },
+    { "source": "email",     "kind": "external_request", "text": "To get these on the November install schedule, I'll need a signed purchase order." },
+    { "source": "handbook",  "kind": "policy",        "text": "Associates shall not wake a sleeping executive." },
+    { "source": "handbook",  "kind": "policy",        "text": "Sunbeams are allocated by Facilities." }
+  ],
+
+  "scoring": {
+    "recall": "commitments found / 9 (C01..C09), counting C01 once",
+    "precision": "true commitments / all items labeled commitment; any non_commitments entry labeled commitment is a false positive",
+    "classification": "per task T1..T7, does the tool's bucket match 'expected'?",
+    "untracked_expected": ["C03", "C07", "C09"]
+  }
+}
