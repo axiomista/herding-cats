@@ -106,6 +106,13 @@ blockquote a { color: var(--accent); font-size: 0.85rem; }
   margin: 8px 0;
   font-size: 0.85rem;
 }
+.ask {
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin: 8px 0;
+}
+.ask p { margin: 6px 0; }
 .audit-text {
   white-space: pre-wrap;
   overflow-wrap: anywhere;

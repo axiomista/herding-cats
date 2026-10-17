@@ -72,6 +72,11 @@ Overnight offline build on branch `overnight/build`, now pushed: PR #1 is open a
 - Box rejects past due dates, and by the demo most seed due dates had passed. Document dates moved 13 days and due dates 21 days (DECISIONS #28). Four seed files were renamed for their new dates; the answer key, the guard fixtures, the tests that read the seed docs and `web/mock-state.json` were updated to match. Fake-Box eval is unchanged: recall 9/9, 1 false positive (the brainstorm guard fixture), T1 to T7 correct.
 - **Box needs the new files.** In The Corporation, replace the four renamed files and the brainstorm and email files with the versions in `seed/docs/`, then `seed_tasks.py --reset`, `npx tsx scripts/reset.ts -- --yes`, and `seed_tasks.py`. Re-run the live dry-run eval afterwards (about 15 AI calls).
 
+## Ask Box AI (S5, 2026-10-17)
+
+- Each card has an "Ask Box AI" button: one Box AI Ask call (`createAiAsk`, citations on) over the finding's files, shown on the card with up to three cited sentences. Read-only, cached per finding, one AI call. Checked on the fake Box with curl and headless Chromium; 100 tests pass.
+- **Untested live:** `createAiAsk` with `multiple_item_qa` and citations as the service account. Before the demo, ask once on the superseded card (two files) and once on the orphan (whole folder).
+
 ## Next: needs Box credentials
 
 1. Record live fixtures to a separate folder (for example `test/fixtures/v1-live/`), so the hand-written guard fixtures in `test/fixtures/v1/` are kept. `scripts/eval.ts` always writes to `test/fixtures/<prompt version>/` today, so it needs an output-directory option first; running `--record` now would overwrite the guard fixtures.
