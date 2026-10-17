@@ -67,12 +67,17 @@ Overnight offline build on branch `overnight/build`, now pushed: PR #1 is open a
 - README status says the app runs live on Box and AWS.
 - Public-repo hardening: wrong passcodes are limited to 10 per IP per 15 minutes (429 after that); personal email addresses are gone from the repo and its history; the live URL is no longer in this file. Still to do by hand: set a long random `DEMO_PASSCODE` in the secret and redeploy.
 
+## Corpus date shift (2026-10-17)
+
+- Box rejects past due dates, and by the demo most seed due dates had passed. Document dates moved 13 days and due dates 21 days (DECISIONS #28). Four seed files were renamed for their new dates; the answer key, the guard fixtures, the tests that read the seed docs and `web/mock-state.json` were updated to match. Fake-Box eval is unchanged: recall 9/9, 1 false positive (the brainstorm guard fixture), T1 to T7 correct.
+- **Box needs the new files.** In The Corporation, replace the four renamed files and the brainstorm and email files with the versions in `seed/docs/`, then `seed_tasks.py --reset`, `npx tsx scripts/reset.ts -- --yes`, and `seed_tasks.py`. Re-run the live dry-run eval afterwards (about 15 AI calls).
+
 ## Next: needs Box credentials
 
 1. Record live fixtures to a separate folder (for example `test/fixtures/v1-live/`), so the hand-written guard fixtures in `test/fixtures/v1/` are kept. `scripts/eval.ts` always writes to `test/fixtures/<prompt version>/` today, so it needs an output-directory option first; running `--record` now would overwrite the guard fixtures.
 2. Untested live: global/properties metadata writes, `extracted_text` on a non-text file, assigning to people by user ID through the app.
 3. The webhook on the scan folder is created, but no event has been tested. Confirm both signature keys are in the secret and the task has restarted since, then check that an upload produces a finding in under a minute, a new version rescans only that file, and a task assignment queues its file.
-4. To reset the demo: `seed_tasks.py --reset` (deletes every task in the folder, including the app's), then `npx tsx scripts/reset.ts -- --yes` (deletes the app's comments and `hc*` metadata), then re-seed. Run `reset.ts` without `--yes` first to see what it would remove. Without it, the fingerprint check skips every comment on the next apply-mode run, so a rehearsal would leave the demo with no new comments. `reset.ts` typechecks but has not been run against live Box. Box rejects past due dates, so move T2, T4, T5 and T7's dates forward in the answer key if they matter.
+4. To reset the demo: `seed_tasks.py --reset` (deletes every task in the folder, including the app's), then `npx tsx scripts/reset.ts -- --yes` (deletes the app's comments and `hc*` metadata), then re-seed. Run `reset.ts` without `--yes` first to see what it would remove. Without it, the fingerprint check skips every comment on the next apply-mode run, so a rehearsal would leave the demo with no new comments. `reset.ts` typechecks but has not been run against live Box. The corpus dates were shifted forward on 2026-10-17 (DECISIONS #28), so every planted task gets its due date; the Box folder's seed files must be replaced with the renamed ones first (see the corpus date shift below).
 
 ## Next: needs AWS credentials
 

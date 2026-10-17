@@ -7,13 +7,13 @@
   },
   "classify": {
     "docType": "email thread",
-    "docDate": "2026-10-01",
+    "docDate": "2026-10-14",
     "author": "Gary Okafor",
     "model": "hand-written fixture (prompt v1)"
   },
   "extract": [
     {
-      "raw": "[\n  {\n    \"kind\": \"decision\",\n    \"action\": \"Approve the laser pointer spend\",\n    \"owner\": null,\n    \"due\": null,\n    \"refers_to\": null,\n    \"new_status\": null,\n    \"evidence\": \"Tuxedo has approved the spend.\"\n  },\n  {\n    \"kind\": \"commitment\",\n    \"action\": \"Send the signed PO to Laser Dynamics\",\n    \"owner\": \"I\",\n    \"due\": \"October 20\",\n    \"refers_to\": null,\n    \"new_status\": null,\n    \"evidence\": \"I'll send you the signed PO by October 20.\"\n  },\n  {\n    \"kind\": \"open_question\",\n    \"action\": \"Ask whether the dot is catchable\",\n    \"owner\": null,\n    \"due\": null,\n    \"refers_to\": null,\n    \"new_status\": null,\n    \"evidence\": \"One question: is the dot catchable?\"\n  }\n]",
+      "raw": "[\n  {\n    \"kind\": \"decision\",\n    \"action\": \"Approve the laser pointer spend\",\n    \"owner\": null,\n    \"due\": null,\n    \"refers_to\": null,\n    \"new_status\": null,\n    \"evidence\": \"Tuxedo has approved the spend.\"\n  },\n  {\n    \"kind\": \"commitment\",\n    \"action\": \"Send the signed PO to Laser Dynamics\",\n    \"owner\": \"I\",\n    \"due\": \"November 10\",\n    \"refers_to\": null,\n    \"new_status\": null,\n    \"evidence\": \"I'll send you the signed PO by November 10.\"\n  },\n  {\n    \"kind\": \"open_question\",\n    \"action\": \"Ask whether the dot is catchable\",\n    \"owner\": null,\n    \"due\": null,\n    \"refers_to\": null,\n    \"new_status\": null,\n    \"evidence\": \"One question: is the dot catchable?\"\n  }\n]",
       "model": "hand-written fixture (prompt v1)"
     }
   ]
