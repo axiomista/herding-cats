@@ -83,9 +83,11 @@ export async function applyFinding(ctx: WriteContext, f: Finding, trigger: Trigg
   let outcome = "ok";
   try {
     if (p.kind === "task") {
-      const task = await ctx.tracker.createTask(p.fileId, p.message, p.assigneeId, p.due) as { id: string; assignError?: string; assigneeIds: string[] };
+      const task = await ctx.tracker.createTask(p.fileId, p.message, p.assigneeId, p.due) as
+        { id: string; assignError?: string; dueError?: string; assigneeIds: string[] };
       const who = task.assigneeIds.length ? `assigned to ${p.assigneeName ?? userName(ctx.people, p.assigneeId!)}` : "unassigned";
       change = `task ${task.id} created on "${fileName(ctx.state, p.fileId)}", ${who}`;
+      if (task.dueError) change += `, without due date ${p.due} (Box: ${task.dueError})`;
       if (task.assignError) outcome = `assignment failed: ${task.assignError}`;
     } else {
       if (await ctx.tracker.hasComment(p.fileId, f.fingerprint)) {

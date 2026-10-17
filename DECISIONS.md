@@ -45,4 +45,5 @@ None. The full design is built.
 20. **One KMS key for the secret.** The `herding-cats/env` secret uses a dedicated KMS key with rotation, following AWS secret best practices; the execution role may decrypt only through Secrets Manager.
 21. **Deploy role trust** is limited to the repository's `production` GitHub environment, which `deploy.yml` uses.
 22. **Docker image contents.** `dist/`, production `node_modules`, `prompts/`, `config/` and `seed/answer_key.json` (for `POST /api/score`). Test fixtures and seed docs are left out, so `FAKE_BOX=1` is a local mode only.
-23. **Express 5** is what `npm install express` resolves to today; the spec names no version.
+23. **Past due dates.** Box rejects a task due date in the past with a 400 (seen live while seeding). `createTask` then creates the task without a due date, and the audit `change` line says so; the outcome stays `ok`.
+24. **Express 5** is what `npm install express` resolves to today; the spec names no version.

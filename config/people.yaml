@@ -3,7 +3,7 @@
 # commitment; `external: true` marks people outside the organization.
 users:
   vanessa: "53096399974"              # owner of The Corporation
-  zaq: "REPLACE_WITH_ZAQ_BOX_USER_ID" # fill in once Zaq accepts the invite
+  zaq: "53093111490"                  # Editor on The Corporation
 
 people:
   - name: Sir Reginald Biscuits

@@ -30,17 +30,29 @@ export class BoxTasksTracker implements TrackerAdapter {
   }
 
   // If the assignment fails, the task comes back unassigned with Box's error for the audit entry.
+  // Box rejects due dates in the past with a 400; the task is then created without one and
+  // `dueError` says why, as seed_tasks.py does.
   async createTask(fileId: string, message: string, assigneeId?: string, due?: string)
-    : Promise<TrackerTask & { assignError?: string }> {
-    const task = await this.client.tasks.createTask({
+    : Promise<TrackerTask & { assignError?: string; dueError?: string }> {
+    const create = (withDue: boolean) => this.client.tasks.createTask({
       item: { type: "file", id: fileId },
       action: "complete",
       message,
       completionRule: "any_assignee",
-      ...(due ? { dueAt: dateTimeFromString(dueAtFor(due)) } : {}),
+      ...(withDue && due ? { dueAt: dateTimeFromString(dueAtFor(due)) } : {}),
     });
-    const created: TrackerTask & { assignError?: string } =
-      { id: task.id!, fileId, message, assigneeIds: [], due, completed: false };
+    let task;
+    let dueError: string | undefined;
+    try {
+      task = await create(true);
+    } catch (err) {
+      if (!due || (err as { responseInfo?: { statusCode?: number } }).responseInfo?.statusCode !== 400) throw err;
+      dueError = (err as { responseInfo?: { body?: { message?: string } } }).responseInfo?.body?.message
+        ?? (err instanceof Error ? err.message : String(err));
+      task = await create(false);
+    }
+    const created: TrackerTask & { assignError?: string; dueError?: string } =
+      { id: task.id!, fileId, message, assigneeIds: [], due: dueError ? undefined : due, completed: false, dueError };
     if (!assigneeId) return created;
     try {
       await this.client.taskAssignments.createTaskAssignment({

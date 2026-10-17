@@ -31,6 +31,13 @@ Overnight offline build on branch `overnight/build` (not pushed). Source of trut
 
 - Nothing offline. Everything below needs credentials.
 
+## Done with live Box (2026-10-17)
+
+- Read and write probes all pass. The service account is `AutomationUser_2709912_hyMwcfM52f@boxdevedition.com` (`53096331749`); the classify model is `google__gemini_3_1_flash_lite`.
+- `seed_tasks.py` created T1 to T7 (`44009257737` to `44009271657`). Box rejected the past due dates on T2, T4, T5 and T7, so those tasks have none.
+- `config/people.yaml` now has Zaq's ID, `53093111490`, read from the folder's collaborators.
+- `createTask` now retries without a due date that Box rejects.
+
 ## Next: needs Box credentials
 
 1. Invite the service account (`AutomationUser_…@boxdevedition.com`) as Editor on The Corporation (`428423214478`) and Herding Cats Audit (`428424620757`). Zaq accepts his invitation.
