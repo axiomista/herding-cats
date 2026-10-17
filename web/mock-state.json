@@ -1,0 +1,534 @@
+{
+  "mode": "dry-run",
+  "watching": true,
+  "lastCycle": {
+    "at": "2026-10-17T17:00:00.000Z",
+    "trigger": "full_scan",
+    "filesChecked": 7
+  },
+  "aiCallsThisMonth": 30,
+  "findings": [
+    {
+      "id": "fa1ea7dcd549",
+      "bucket": "matched",
+      "commitment": {
+        "id": "2532582052240:0",
+        "fileId": "2532582052240",
+        "fileVersion": "2810308355440",
+        "text": "Book the Q4 All-Paws Meeting in the Great Hall",
+        "evidence": "Tuxedo will book the Q4 All-Paws Meeting in the Great Hall by October 23.",
+        "owner": "Tuxedo Meowtani",
+        "ownerUserId": "REPLACE_WITH_ZAQ_BOX_USER_ID",
+        "due": "2026-10-23",
+        "dueAbsolute": true,
+        "status": "open",
+        "flags": [],
+        "mentions": [
+          {
+            "fileId": "2532581322553",
+            "evidence": "Tuxedo is still working on booking the Great Hall for the all-paws. Target date is still October 23."
+          }
+        ]
+      },
+      "task": {
+        "id": "seed-T1",
+        "fileId": "2532582052240",
+        "message": "Book the Q4 All-Paws Meeting (Great Hall)",
+        "assigneeIds": [
+          "REPLACE_WITH_ZAQ_BOX_USER_ID"
+        ],
+        "due": "2026-10-23",
+        "completed": false
+      },
+      "score": 100,
+      "rivalScore": 57,
+      "fingerprint": "matched|2532582052240|book-q4-all-paws",
+      "checks": {
+        "evidence": true,
+        "owner": true,
+        "dueDate": true,
+        "pairing": true,
+        "bucket": true
+      },
+      "certainty": "high"
+    },
+    {
+      "id": "f0fdc60ad752",
+      "bucket": "owner_conflict",
+      "commitment": {
+        "id": "2532582052240:1",
+        "fileId": "2532582052240",
+        "fileVersion": "2810308355440",
+        "text": "Draft the posture-correction pilot protocol for review",
+        "evidence": "Sir Reginald Biscuits owns the posture-correction pilot protocol and will have a draft ready for review by October 14.",
+        "owner": "Sir Reginald Biscuits",
+        "ownerUserId": "53096399974",
+        "due": "2026-10-14",
+        "dueAbsolute": true,
+        "status": "open",
+        "flags": []
+      },
+      "task": {
+        "id": "seed-T2",
+        "fileId": "2532582052240",
+        "message": "Draft posture-correction pilot protocol",
+        "assigneeIds": [
+          "REPLACE_WITH_ZAQ_BOX_USER_ID"
+        ],
+        "due": "2026-10-14",
+        "completed": false
+      },
+      "score": 100,
+      "rivalScore": 46,
+      "fingerprint": "owner_conflict|2532582052240|draft-posture-correction-pilot",
+      "checks": {
+        "evidence": true,
+        "owner": true,
+        "dueDate": true,
+        "pairing": true,
+        "bucket": true
+      },
+      "certainty": "high",
+      "proposal": {
+        "kind": "comment",
+        "fileId": "2532582052240",
+        "text": "Herding Cats: the task \"Draft posture-correction pilot protocol\" is assigned to Tuxedo Meowtani, but \"2026-09-08 Kickoff - Project PURRFECT.md\" says Sir Reginald Biscuits owns it: \"Sir Reginald Biscuits owns the posture-correction pilot protocol and will have a draft ready for review by October 14.\"\n\nfingerprint: owner_conflict|2532582052240|draft-posture-correction-pilot"
+      }
+    },
+    {
+      "id": "06b23e1be14f",
+      "bucket": "untracked",
+      "commitment": {
+        "id": "2532582052240:2",
+        "fileId": "2532582052240",
+        "fileVersion": "2810308355440",
+        "text": "Draft the Human Gratitude Survey (10 questions max)",
+        "evidence": "Tuxedo will draft the Human Gratitude Survey (10 questions max; humans tire easily) by October 9.",
+        "owner": "Tuxedo Meowtani",
+        "ownerUserId": "REPLACE_WITH_ZAQ_BOX_USER_ID",
+        "due": "2026-10-09",
+        "dueAbsolute": true,
+        "status": "open",
+        "flags": []
+      },
+      "score": 48,
+      "fingerprint": "untracked|2532582052240|draft-human-gratitude-survey",
+      "checks": {
+        "evidence": true,
+        "owner": true,
+        "dueDate": true,
+        "bucket": true
+      },
+      "certainty": "high",
+      "proposal": {
+        "kind": "task",
+        "fileId": "2532582052240",
+        "message": "Draft the Human Gratitude Survey (10 questions max)",
+        "assigneeId": "REPLACE_WITH_ZAQ_BOX_USER_ID",
+        "assigneeName": "Tuxedo Meowtani",
+        "due": "2026-10-09"
+      }
+    },
+    {
+      "id": "2b157903d7ec",
+      "bucket": "untracked",
+      "commitment": {
+        "id": "2532575404340:2",
+        "fileId": "2532575404340",
+        "fileVersion": "2810301577940",
+        "text": "Install a laser pointer in every conference room",
+        "evidence": "Install a laser pointer in every conference room so meetings have a clear focal point.",
+        "dueAbsolute": true,
+        "status": "open",
+        "flags": [
+          "owner missing"
+        ]
+      },
+      "score": 48,
+      "fingerprint": "untracked|2532575404340|install-laser-pointer-every",
+      "checks": {
+        "evidence": true,
+        "owner": false,
+        "dueDate": true,
+        "bucket": true
+      },
+      "certainty": "low",
+      "proposal": {
+        "kind": "task",
+        "fileId": "2532575404340",
+        "message": "Install a laser pointer in every conference room"
+      }
+    },
+    {
+      "id": "3d1ef7d1f755",
+      "bucket": "date_conflict",
+      "commitment": {
+        "id": "2532581322553:1",
+        "fileId": "2532581322553",
+        "fileVersion": "2810307594553",
+        "text": "Install 12 new full-spectrum sunbeam lamps on Floor 3",
+        "evidence": "Pixel will install 12 new full-spectrum sunbeam lamps on Floor 3 by October 15.",
+        "owner": "Pixel",
+        "ownerUserId": "REPLACE_WITH_ZAQ_BOX_USER_ID",
+        "due": "2026-10-15",
+        "dueAbsolute": true,
+        "status": "open",
+        "flags": []
+      },
+      "task": {
+        "id": "seed-T3",
+        "fileId": "2532581322553",
+        "message": "Install 12 sunbeam lamps on Floor 3",
+        "assigneeIds": [
+          "REPLACE_WITH_ZAQ_BOX_USER_ID"
+        ],
+        "due": "2026-10-31",
+        "completed": false
+      },
+      "score": 100,
+      "rivalScore": 48,
+      "fingerprint": "date_conflict|2532581322553|install-12-new-full",
+      "checks": {
+        "evidence": true,
+        "owner": true,
+        "dueDate": true,
+        "pairing": true,
+        "bucket": true
+      },
+      "certainty": "high",
+      "proposal": {
+        "kind": "comment",
+        "fileId": "2532581322553",
+        "text": "Herding Cats: the task \"Install 12 sunbeam lamps on Floor 3\" is due 2026-10-31, but \"2026-09-15 Weekly Sync 01.md\" says 2026-10-15: \"Pixel will install 12 new full-spectrum sunbeam lamps on Floor 3 by October 15.\"\n\nfingerprint: date_conflict|2532581322553|install-12-new-full"
+      }
+    },
+    {
+      "id": "143a8f23d693",
+      "bucket": "superseded",
+      "commitment": {
+        "id": "2532581322553:2",
+        "fileId": "2532581322553",
+        "fileVersion": "2810307594553",
+        "text": "Order 50 cardboard boxes for the Human Acclimation Lab",
+        "evidence": "Sir Reginald Biscuits will order 50 cardboard boxes for the Human Acclimation Lab by October 1, so humans can learn to sit in them.",
+        "owner": "Sir Reginald Biscuits",
+        "ownerUserId": "53096399974",
+        "due": "2026-10-01",
+        "dueAbsolute": true,
+        "status": "cancelled",
+        "flags": [],
+        "statusEvidence": {
+          "fileId": "2532585685739",
+          "evidence": "The Human Acclimation Lab box order is cancelled."
+        }
+      },
+      "task": {
+        "id": "seed-T4",
+        "fileId": "2532581322553",
+        "message": "Order 50 cardboard boxes for the Human Acclimation Lab",
+        "assigneeIds": [
+          "53096399974"
+        ],
+        "due": "2026-10-01",
+        "completed": false
+      },
+      "score": 100,
+      "rivalScore": 48,
+      "fingerprint": "superseded|2532581322553|order-50-cardboard-boxes",
+      "checks": {
+        "evidence": true,
+        "owner": true,
+        "dueDate": true,
+        "pairing": true,
+        "bucket": true
+      },
+      "certainty": "high",
+      "proposal": {
+        "kind": "comment",
+        "fileId": "2532581322553",
+        "text": "Herding Cats: \"The Human Acclimation Lab box order is cancelled.\" (2026-09-29 Weekly Sync 02.txt) cancels the task \"Order 50 cardboard boxes for the Human Acclimation Lab\". The assignee can close it.\n\nfingerprint: superseded|2532581322553|order-50-cardboard-boxes"
+      }
+    },
+    {
+      "id": "903975896991",
+      "bucket": "matched",
+      "commitment": {
+        "id": "2532581322553:3",
+        "fileId": "2532581322553",
+        "fileVersion": "2810307594553",
+        "text": "Complete Augmentation Module 1",
+        "evidence": "Dale will complete Augmentation Module 1 by October 10.",
+        "owner": "Dale Henderson",
+        "ownerUserId": "53096399974",
+        "due": "2026-10-10",
+        "dueAbsolute": true,
+        "status": "open",
+        "flags": []
+      },
+      "task": {
+        "id": "seed-T5",
+        "fileId": "2532581322553",
+        "message": "Complete Augmentation Module 1 (Advanced Can Opening)",
+        "assigneeIds": [
+          "53096399974"
+        ],
+        "due": "2026-10-10",
+        "completed": false
+      },
+      "score": 100,
+      "rivalScore": 42,
+      "fingerprint": "matched|2532581322553|complete-augmentation-module-1",
+      "checks": {
+        "evidence": true,
+        "owner": true,
+        "dueDate": true,
+        "pairing": true,
+        "bucket": true
+      },
+      "certainty": "high"
+    },
+    {
+      "id": "d7a6d79892de",
+      "bucket": "untracked",
+      "commitment": {
+        "id": "2532581322553:4",
+        "fileId": "2532581322553",
+        "fileVersion": "2810307594553",
+        "text": "Replace the break room tuna dispenser filter",
+        "evidence": "Dale will replace the break room tuna dispenser filter by October 2.",
+        "owner": "Dale Henderson",
+        "ownerUserId": "53096399974",
+        "due": "2026-10-02",
+        "dueAbsolute": true,
+        "status": "open",
+        "flags": []
+      },
+      "score": 43,
+      "fingerprint": "untracked|2532581322553|replace-break-room-tuna",
+      "checks": {
+        "evidence": true,
+        "owner": true,
+        "dueDate": true,
+        "bucket": true
+      },
+      "certainty": "high",
+      "proposal": {
+        "kind": "task",
+        "fileId": "2532581322553",
+        "message": "Replace the break room tuna dispenser filter",
+        "assigneeId": "53096399974",
+        "assigneeName": "Dale Henderson",
+        "due": "2026-10-02"
+      }
+    },
+    {
+      "id": "67bbbb2c63fc",
+      "bucket": "misfiled",
+      "commitment": {
+        "id": "2532575022411:1",
+        "fileId": "2532575022411",
+        "fileVersion": "2810300804811",
+        "text": "Submit a revised R&D treat budget",
+        "evidence": "Sir Reginald Biscuits will submit a revised R&D treat budget, reflecting the 85% allocation and the salmon-to-granola substitution, by October 12.",
+        "owner": "Sir Reginald Biscuits",
+        "ownerUserId": "53096399974",
+        "due": "2026-10-12",
+        "dueAbsolute": true,
+        "status": "open",
+        "flags": []
+      },
+      "task": {
+        "id": "seed-T7",
+        "fileId": "2532575404340",
+        "message": "Submit revised R&D treat budget (85% allocation)",
+        "assigneeIds": [
+          "53096399974"
+        ],
+        "due": "2026-10-12",
+        "completed": false
+      },
+      "score": 97,
+      "rivalScore": 48,
+      "fingerprint": "misfiled|2532575022411|submit-revised-r-d",
+      "checks": {
+        "evidence": true,
+        "owner": true,
+        "dueDate": true,
+        "pairing": true,
+        "bucket": false
+      },
+      "certainty": "low",
+      "proposal": {
+        "kind": "comment",
+        "fileId": "2532575404340",
+        "text": "Herding Cats: the task \"Submit revised R&D treat budget (85% allocation)\" sits on this file, which never mentions it. Its source is \"2026-09-22 Memo - FY27 Treat Budget.md\": \"Sir Reginald Biscuits will submit a revised R&D treat budget, reflecting the 85% allocation and the salmon-to-granola substitution, by October 12.\"\n\nfingerprint: misfiled|2532575022411|submit-revised-r-d"
+      }
+    },
+    {
+      "id": "bcf6d4d22053",
+      "bucket": "untracked",
+      "commitment": {
+        "id": "2532583957462:1",
+        "fileId": "2532583957462",
+        "fileVersion": "2810310471862",
+        "text": "Send the signed PO to Laser Dynamics",
+        "evidence": "I'll send you the signed PO by October 20.",
+        "owner": "Pixel",
+        "ownerUserId": "REPLACE_WITH_ZAQ_BOX_USER_ID",
+        "due": "2026-10-20",
+        "dueAbsolute": true,
+        "status": "open",
+        "flags": []
+      },
+      "score": 45,
+      "fingerprint": "untracked|2532583957462|send-signed-po-laser",
+      "checks": {
+        "evidence": true,
+        "owner": true,
+        "dueDate": true,
+        "bucket": true
+      },
+      "certainty": "high",
+      "proposal": {
+        "kind": "task",
+        "fileId": "2532583957462",
+        "message": "Send the signed PO to Laser Dynamics",
+        "assigneeId": "REPLACE_WITH_ZAQ_BOX_USER_ID",
+        "assigneeName": "Pixel",
+        "due": "2026-10-20"
+      }
+    },
+    {
+      "id": "3d69a44bfc88",
+      "bucket": "orphan",
+      "task": {
+        "id": "seed-T6",
+        "fileId": "2532585685739",
+        "message": "Repaint the Hall of Ancestral Scratches",
+        "assigneeIds": [
+          "REPLACE_WITH_ZAQ_BOX_USER_ID"
+        ],
+        "due": "2026-11-01",
+        "completed": false
+      },
+      "score": 57,
+      "fingerprint": "orphan|2532585685739|task-seed-T6",
+      "checks": {
+        "bucket": false
+      },
+      "certainty": "low",
+      "proposal": {
+        "kind": "comment",
+        "fileId": "2532585685739",
+        "text": "Herding Cats: no document in this folder explains the task \"Repaint the Hall of Ancestral Scratches\". Is it still needed?\n\nfingerprint: orphan|2532585685739|task-seed-T6"
+      }
+    }
+  ],
+  "setAside": [
+    {
+      "kind": "idea",
+      "action": "Vibrate Associate chairs at 25 Hz",
+      "evidence": "What if Associate chairs vibrated at 25 Hz?",
+      "fileId": "2532575404340"
+    },
+    {
+      "kind": "idea",
+      "action": "Teach humans to purr",
+      "evidence": "We could maybe teach humans to purr.",
+      "fileId": "2532575404340"
+    },
+    {
+      "kind": "open_question",
+      "action": "Find out whether humans need eight hours of sleep",
+      "evidence": "Open question: do humans actually need eight hours of sleep, or is that a myth?",
+      "fileId": "2532575404340"
+    },
+    {
+      "kind": "idea",
+      "action": "Pilot a Nap Pod",
+      "evidence": "Possibly a \"Nap Pod\" pilot.",
+      "fileId": "2532575404340"
+    },
+    {
+      "kind": "decision",
+      "action": "Approve the laser pointer spend",
+      "evidence": "Tuxedo has approved the spend.",
+      "fileId": "2532583957462"
+    },
+    {
+      "kind": "open_question",
+      "action": "Ask whether the dot is catchable",
+      "evidence": "One question: is the dot catchable?",
+      "fileId": "2532583957462"
+    },
+    {
+      "kind": "open_question",
+      "action": "Find out whether humans are grateful for their improvements",
+      "evidence": "We do not currently know whether humans are grateful for their improvements, which is a gap.",
+      "fileId": "2532582052240"
+    },
+    {
+      "kind": "decision",
+      "action": "Approve the FY27 treat budget at 85% of the request",
+      "evidence": "The request is conditionally approved at 85% of the requested amount.",
+      "fileId": "2532575022411"
+    },
+    {
+      "kind": "decision",
+      "action": "Keep catnip out of treat budgets",
+      "evidence": "Treat budgets may not be spent on catnip.",
+      "fileId": "2532575022411"
+    },
+    {
+      "kind": "open_question",
+      "action": "Decide whether humans may use the good couch",
+      "evidence": "Should humans be allowed on the good couch? Tabled indefinitely.",
+      "fileId": "2532581322553"
+    },
+    {
+      "kind": "decision",
+      "action": "Make cardboard boxes executive-only",
+      "evidence": "By decree of the Chairmeow, cardboard boxes are executive-only.",
+      "fileId": "2532585685739"
+    },
+    {
+      "kind": "idea",
+      "action": "Start a Sunbeam of the Month recognition program",
+      "owner": "Pixel",
+      "evidence": "Pixel suggested a \"Sunbeam of the Month\" recognition program.",
+      "fileId": "2532585685739"
+    }
+  ],
+  "files": {
+    "2532575404340": {
+      "name": "Brainstorm - Human Augmentation Ideas.md"
+    },
+    "2532583957462": {
+      "name": "Laser Dynamics - Email Thread Export.txt"
+    },
+    "2532578853053": {
+      "name": "Employee Handbook - Section 4 - Rest and Napping Policy.md"
+    },
+    "2532582052240": {
+      "name": "2026-09-08 Kickoff - Project PURRFECT.md"
+    },
+    "2532575022411": {
+      "name": "2026-09-22 Memo - FY27 Treat Budget.md"
+    },
+    "2532581322553": {
+      "name": "2026-09-15 Weekly Sync 01.md"
+    },
+    "2532585685739": {
+      "name": "2026-09-29 Weekly Sync 02.txt"
+    }
+  },
+  "errors": [],
+  "unverified": [
+    {
+      "kind": "commitment",
+      "action": "Investigate the tuna dispenser flow",
+      "evidence": "The tuna dispenser is only dispensing at 60 percent, probably because of the filter.",
+      "fileId": "2532581322553"
+    }
+  ]
+}

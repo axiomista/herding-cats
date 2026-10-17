@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Herding Cats</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <h1>🐈‍⬛ Herding Cats</h1>
+    <p class="tagline">Promises made in documents, checked against the tasks meant to track them.</p>
+  </header>
+
+  <main>
+    <section id="passcode" class="panel" hidden>
+      <h2>Sign in</h2>
+      <form id="passcode-form">
+        <label for="passcode-input">Passcode</label>
+        <div class="row">
+          <input id="passcode-input" type="password" autocomplete="current-password" required>
+          <button type="submit">Open</button>
+        </div>
+        <p id="passcode-error" class="error" role="alert"></p>
+      </form>
+    </section>
+
+    <div id="app" hidden>
+      <section id="status" class="panel" aria-live="polite"></section>
+      <section id="findings"></section>
+      <section id="set-aside" class="panel"></section>
+      <section id="audit" class="panel">
+        <div class="row spread">
+          <h2>Audit log</h2>
+          <label class="inline">Day <input id="audit-date" type="date"></label>
+        </div>
+        <pre id="audit-text" class="audit-text"></pre>
+      </section>
+      <section id="eval" class="panel" hidden>
+        <div class="row spread">
+          <h2>Eval</h2>
+          <button id="score-button" type="button">Score</button>
+        </div>
+        <div id="eval-result"></div>
+      </section>
+    </div>
+  </main>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
