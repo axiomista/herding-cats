@@ -20,6 +20,7 @@ export class State {
   names = new Map<string, string>();
   markers = new Map<string, string>();       // scan markers this process knows, by file ID
   metaMarkers = new Map<string, string>();   // scan markers already written to Box metadata
+  metaCounts = new Map<string, string>();    // hcOpenFindings last written to Box, by file ID
   findings: Finding[] = [];
   setAsideCommitments: Commitment[] = [];
   errors: { fileId: string; message: string }[] = [];
