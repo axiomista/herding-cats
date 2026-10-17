@@ -22,10 +22,23 @@ export function buildPrompt(template: string, orgName: string, peopleNames: stri
 const optional = (v: unknown): string | undefined =>
   typeof v === "string" && v.trim() && v.trim().toLowerCase() !== "null" ? v.trim() : undefined;
 
-// Parses the model's answer. Throws on anything that is not a JSON array; drops elements that
-// are not objects with a known kind, an action and evidence.
+// The model does not always return only the array: it may wrap it in a code fence or prose, or
+// return one bare item, as it did for a document saying "the only task that exists is the one
+// below". Take the JSON from inside a fence, or from the first bracket to its last match.
+function jsonPart(raw: string): string {
+  const fenced = /```(?:json)?\s*([\s\S]*?)```/i.exec(raw);
+  const text = (fenced ? fenced[1] : raw).trim();
+  const start = text.search(/[[{]/);
+  if (start < 0) return text;
+  const end = text.lastIndexOf(text[start] === "[" ? "]" : "}");
+  return end > start ? text.slice(start, end + 1) : text;
+}
+
+// Parses the model's answer. A single item counts as a list of one. Throws on anything else that
+// is not a JSON array; drops elements that are not objects with a known kind, an action and evidence.
 export function parseItems(raw: string): ExtractedItem[] {
-  const parsed: unknown = JSON.parse(raw.trim());
+  let parsed: unknown = JSON.parse(jsonPart(raw));
+  if (parsed && typeof parsed === "object" && !Array.isArray(parsed) && "kind" in parsed) parsed = [parsed];
   if (!Array.isArray(parsed)) throw new Error("the reply is JSON but not an array");
   const items: ExtractedItem[] = [];
   for (const el of parsed) {

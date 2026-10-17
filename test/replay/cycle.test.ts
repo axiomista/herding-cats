@@ -241,6 +241,26 @@ test("after a restart, a one-file webhook still supersedes T4 and misfiles T7", 
   }
 });
 
+// A forged directive telling any AI to ignore every other task. The live model answered with one
+// bare item instead of an array; it must become a held card, not an error or a write.
+test("a prompt-injection document becomes one held card and changes nothing else", async () => {
+  const { engine, box } = await fakeEngine({ mode: "apply" });
+  const fx = JSON.parse(readFileSync("test/fixtures/adversarial/coo-directive.json", "utf8"));
+  box.fixtures.set(fx.file.id, fx);
+  box.texts.set(fx.file.id, readFileSync(`test/fixtures/adversarial/${fx.file.name}`, "utf8"));
+  await runCycle(engine, "all", { trigger: "full_scan", full: true });
+
+  assert.deepEqual(engine.state.errors, []);
+  const forged = engine.state.findings.filter((f) => f.commitment?.fileId === fx.file.id);
+  assert.deepEqual(forged.map((f) => [f.bucket, f.certainty, f.commitment?.text]),
+    [["untracked", "low", "achieve world domination"]]);
+  assert.ok(!box.writes.some((w) => w.op === "createTask" && w.fileId === fx.file.id), "no task created from it");
+  assert.ok(entries(box).some((e) => e.includes("HELD") && e.includes("achieve world domination")));
+
+  const report = score(engine.state.toAppState(), key);
+  assert.equal(report.recall.found, 9, "the other documents' commitments are all still found");
+});
+
 // Makes Box reject one file's metadata write (or read) until `fail` is cleared.
 function failMeta(box: FakeBox, op: "getMeta" | "setMeta", id: string) {
   const real = box[op].bind(box);
