@@ -32,6 +32,10 @@ export interface CycleSummary {
   held: number;
 }
 
+const errorMessage = (err: unknown) => (err instanceof Error ? err.message : String(err));
+// Prefixes the errors commitWrites records, so the next call can replace them.
+const META_WRITE = "metadata write: ";
+
 const SUPPORTED = /\.(txt|md|pdf|docx?|rtf|odt|html?|pptx?|xlsx?)$/i;
 
 export const scanMarker = (version: string) => `${version}@${PROMPT_VERSION}`;
@@ -86,6 +90,7 @@ async function scanFile(engine: Engine, file: BoxFile, full: boolean): Promise<{
       known = meta.hcScannedVersion;
       extract = meta.hcExtract;
       if (known) state.metaMarkers.set(file.id, known);
+      if (meta.hcOpenFindings) state.metaCounts.set(file.id, meta.hcOpenFindings);
     }
     if (known === marker) {
       state.markers.set(file.id, marker);
@@ -128,6 +133,8 @@ async function scanFile(engine: Engine, file: BoxFile, full: boolean): Promise<{
     statusChanges, setAside, unverified,
   });
   state.markers.set(file.id, marker);
+  // A fresh extraction (a full scan of the same version too) replaces the snapshot on Box.
+  state.metaMarkers.delete(file.id);
   return { scanned: true, aiCalls };
 }
 
@@ -169,7 +176,7 @@ export async function runCycle(engine: Engine, fileIds: string[] | "all",
       if (r.scanned) scanned++;
     } catch (err) {
       state.markers.delete(file.id);
-      errors.push({ fileId: file.id, message: err instanceof Error ? err.message : String(err) });
+      errors.push({ fileId: file.id, message: errorMessage(err) });
     } finally {
       state.running!.done++;
     }
@@ -201,11 +208,17 @@ async function hydrateOthers(engine: Engine, files: BoxFile[], wanted: Set<strin
   const errors: State["errors"] = [];
   for (const file of files) {
     if (wanted.has(file.id) || state.files.has(file.id)) continue;
-    const meta = await gateway.getMeta(file.id);
+    // One unreadable file is recorded like a scan error; it must not fail the whole cycle.
+    let meta: Record<string, string>;
+    try { meta = await gateway.getMeta(file.id); } catch (err) {
+      errors.push({ fileId: file.id, message: `metadata read: ${errorMessage(err)}` });
+      continue;
+    }
     const marker = scanMarker(file.version);
     if (meta.hcScannedVersion !== marker) continue;
     state.markers.set(file.id, marker);
     state.metaMarkers.set(file.id, marker);
+    if (meta.hcOpenFindings) state.metaCounts.set(file.id, meta.hcOpenFindings);
     if (restoreFile(state, file, meta.hcExtract)) continue;
     state.metaMarkers.delete(file.id);
     try {
@@ -214,7 +227,7 @@ async function hydrateOthers(engine: Engine, files: BoxFile[], wanted: Set<strin
       if (r.scanned) scanned++;
     } catch (err) {
       state.markers.delete(file.id);
-      errors.push({ fileId: file.id, message: err instanceof Error ? err.message : String(err) });
+      errors.push({ fileId: file.id, message: errorMessage(err) });
     }
   }
   return { aiCalls, scanned, errors };
@@ -228,11 +241,16 @@ export async function commitWrites(engine: Engine, trigger: Trigger): Promise<{ 
   const ctx: WriteContext = { tracker, audit: engine.audit, state, people: engine.people, now: engine.now };
   let applied = 0;
   let held = 0;
+  const touched = new Set<string>();
+  const touch = (f: Finding) => {
+    if (f.commitment) touched.add(f.commitment.fileId);
+    if (f.task) touched.add(f.task.fileId);
+  };
   for (const f of state.findings) {
     if (!f.proposal) continue;
     if (f.certainty === "high") {
-      if ((await applyFinding(ctx, f, trigger)).status === "applied") applied++;
-    } else if (await holdFinding(ctx, f, trigger)) held++;
+      if ((await applyFinding(ctx, f, trigger)).status === "applied") { applied++; touch(f); }
+    } else if (await holdFinding(ctx, f, trigger)) { held++; touch(f); }
   }
   const listed = await gateway.listFiles(engine.config.scanFolderId);
   for (const f of listed) state.names.set(f.id, f.name);
@@ -242,18 +260,35 @@ export async function commitWrites(engine: Engine, trigger: Trigger): Promise<{ 
   state.findings = matched.findings;
   state.setAsideCommitments = matched.setAside;
   const at = engine.now().toISOString();
+  const errors: State["errors"] = [];
   for (const r of state.files.values()) {
     const marker = scanMarker(r.version);
-    if (state.metaMarkers.get(r.id) === marker) continue;
-    const open = state.findings.filter((f) => (f.commitment?.fileId ?? f.task?.fileId) === r.id && f.bucket !== "matched");
-    await gateway.setMeta(r.id, {
-      hcDocType: r.docType, hcDocDate: r.docDate ?? "", hcLastChecked: at,
-      hcOpenFindings: String(open.length), hcLastChange: trigger,
-      hcExtract: snapshotOf(r),
-      hcScannedVersion: marker,
-    });
+    const fresh = state.metaMarkers.get(r.id) !== marker;
+    const open = String(state.findings
+      .filter((f) => (f.commitment?.fileId ?? f.task?.fileId) === r.id && f.bucket !== "matched").length);
+    // Write on a new version, a changed open count, or a write this cycle made for the file. A sweep
+    // that changed nothing writes nothing, so 15-minute sweeps do not rewrite every file.
+    if (!fresh && state.metaCounts.get(r.id) === open && !touched.has(r.id)) continue;
+    const current = { hcLastChecked: at, hcOpenFindings: open, hcLastChange: trigger };
+    try {
+      // setMeta merges, so an unchanged version sends only the current fields and keeps hcExtract.
+      await gateway.setMeta(r.id, fresh ? {
+        hcDocType: r.docType, hcDocDate: r.docDate ?? "", ...current,
+        hcExtract: snapshotOf(r),
+        hcScannedVersion: marker,
+      } : current);
+    } catch (err) {
+      // No marker or count, so the next cycle retries this file.
+      state.metaCounts.delete(r.id);
+      errors.push({ fileId: r.id, message: `${META_WRITE}${errorMessage(err)}` });
+      continue;
+    }
     state.metaMarkers.set(r.id, marker);
+    state.metaCounts.set(r.id, open);
   }
+  // Every file still owed a write was just tried, so these replace earlier write errors. A cycle has
+  // already reset state.errors; a mode switch keeps the cycle's scan errors.
+  state.errors = [...state.errors.filter((e) => !e.message.startsWith(META_WRITE)), ...errors];
   return { applied, held };
 }
 
