@@ -59,6 +59,7 @@ Overnight offline build on branch `overnight/build`, now pushed: PR #1 is open a
 - A fresh account creates ECS's service-linked roles on first use (`AWSServiceRoleForECS`, `AWSServiceRoleForElasticLoadBalancing`, `AWSServiceRoleForApplicationAutoScaling_ECSService`), and the first calls fail while the roles propagate. All three exist now, so later deploys are not affected.
 - The `herding-cats/env` secret must be key/value JSON with the exact key names; a malformed key name stopped every task ("did not contain json key BOX_CLIENT_ID"), and the circuit breaker failed the deployment.
 - The Express endpoint already includes `https://`; `service_url` now adds the scheme only if it is missing. Secret entries are sorted to match what ECS returns, so plans show no reordering diff.
+- Pipeline deploys (2026-10-17): the first `deploy.yml` run could not assume the deploy role because this repo's OIDC tokens use GitHub's immutable subject (`repo:axiomista@17440089/herding-cats@1423070714:...`); #5 fixed the trust, applied once by hand since the pipeline could not sign in to change it. A cancelled run then left a stale state lock (released with `terraform force-unlock`) and an already-pushed image tag; ECR tags are immutable, so `deploy.yml` now skips the build and push when the commit's image exists, and a re-run goes straight to Terraform. Don't cancel a run during `Terraform apply`: the service update may already have started, and state falls behind AWS until the next apply.
 
 ## Done after the review (2026-10-17, not committed)
 
