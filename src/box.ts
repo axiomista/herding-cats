@@ -63,6 +63,18 @@ async function streamToString(stream: Readable | undefined): Promise<string> {
 const statusCode = (err: unknown) =>
   (err as { responseInfo?: { statusCode?: number } }).responseInfo?.statusCode;
 
+// Box AI returns 412 ("The resource has been modified") while a file is still settling after an
+// upload or conversion. Retry once after a short delay; a second 412 fails the scan as before.
+export async function retryOn412<T>(fn: () => Promise<T>, delayMs = 3000): Promise<T> {
+  try {
+    return await fn();
+  } catch (err) {
+    if (statusCode(err) !== 412) throw err;
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
+    return fn();
+  }
+}
+
 function modelName(info: { models?: readonly { name?: string; provider?: string }[] } | undefined): string {
   const names = (info?.models ?? []).map((m) => m.name).filter(Boolean);
   return names.length ? names.join(", ") : "unknown";
@@ -121,10 +133,10 @@ export class RealBoxGateway implements BoxGateway {
   }
 
   async classify(fileId: string) {
-    const res = await this.client.ai.createAiExtractStructured({
+    const res = await retryOn412(() => this.client.ai.createAiExtractStructured({
       items: [{ id: fileId, type: "file" }],
       fields: CLASSIFY_FIELDS,
-    });
+    }));
     const answer = res.answer as Record<string, unknown>;
     const str = (v: unknown) => (typeof v === "string" && v ? v : undefined);
     return {
@@ -136,7 +148,7 @@ export class RealBoxGateway implements BoxGateway {
   }
 
   async extract(fileId: string, prompt: string) {
-    const res = await this.client.ai.createAiExtract({ prompt, items: [{ id: fileId, type: "file" }] });
+    const res = await retryOn412(() => this.client.ai.createAiExtract({ prompt, items: [{ id: fileId, type: "file" }] }));
     return { raw: res.answer, model: modelName(res.aiAgentInfo) };
   }
 
