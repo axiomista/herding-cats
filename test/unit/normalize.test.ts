@@ -35,7 +35,7 @@ for (const o of owners) {
 
 test("owner: 'I' in an email is the sender of that message", () => {
   const r = resolveOwner("I", people, { docType: "email thread", text: email,
-    evidence: "I'll send you the signed PO by October 20." });
+    evidence: "I'll send you the signed PO by November 10." });
   assert.deepEqual(r, { owner: "Pixel", userId: ZAQ, flags: [] });
 });
 

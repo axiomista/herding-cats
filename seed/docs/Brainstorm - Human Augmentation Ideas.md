@@ -1,6 +1,6 @@
 # Brainstorm: Human Augmentation Ideas (Q4–Q1)
 
-**Started by:** Sir Reginald Biscuits, September 10, 2026
+**Started by:** Sir Reginald Biscuits, September 23, 2026
 **Status:** Open brainstorm. Nothing here is approved. Add ideas freely; the Chairmeow will ignore most of them.
 
 ## Comfort & ergonomics

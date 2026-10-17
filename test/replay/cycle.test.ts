@@ -55,7 +55,7 @@ test("the guards fire: invalid JSON retried, paraphrase dropped, mislabel held b
   assert.equal(mislabel?.certainty, "low", "an idea labeled as a commitment, with no owner, is never written automatically");
   const c09 = state.findings.find((f) => f.commitment?.text === "Send the signed PO to Laser Dynamics");
   assert.equal(c09?.commitment?.owner, "Pixel", "'I' in the email resolves to its sender");
-  assert.equal(c09?.commitment?.due, "2026-10-20");
+  assert.equal(c09?.commitment?.due, "2026-11-10");
 });
 
 test("apply mode makes exactly the high-certainty writes, audits each, and writes metadata last", async () => {
@@ -66,9 +66,9 @@ test("apply mode makes exactly the high-certainty writes, audits each, and write
   // Untracked -> a task on the source file, assigned to the owner, with the due date.
   const tasks = writesOf(box, "createTask").map((w: any) => ({ fileId: w.fileId, message: w.message, due: w.due }));
   assert.deepEqual(tasks.sort((a, b) => a.message.localeCompare(b.message)), [
-    { fileId: fileId("kickoff"), message: "Draft the Human Gratitude Survey (10 questions max)", due: "2026-10-09" },
-    { fileId: fileId("sync01"), message: "Replace the break room tuna dispenser filter", due: "2026-10-02" },
-    { fileId: fileId("email"), message: "Send the signed PO to Laser Dynamics", due: "2026-10-20" },
+    { fileId: fileId("kickoff"), message: "Draft the Human Gratitude Survey (10 questions max)", due: "2026-10-30" },
+    { fileId: fileId("sync01"), message: "Replace the break room tuna dispenser filter", due: "2026-10-23" },
+    { fileId: fileId("email"), message: "Send the signed PO to Laser Dynamics", due: "2026-11-10" },
   ].sort((a, b) => a.message.localeCompare(b.message)));
   const assigns = writesOf(box, "assign").map((w: any) => w.assigneeId).sort();
   assert.deepEqual(assigns, [users.zaq, users.vanessa, users.zaq].sort(), "survey and PO to zaq, tuna filter to vanessa");
@@ -81,7 +81,7 @@ test("apply mode makes exactly the high-certainty writes, audits each, and write
   assert.match(commentFor("superseded")!.text, /The Human Acclimation Lab box order is cancelled\./);
   assert.equal(commentFor("owner_conflict")?.fileId, fileId("kickoff"));
   assert.equal(commentFor("date_conflict")?.fileId, fileId("sync01"));
-  assert.match(commentFor("date_conflict")!.text, /due 2026-10-31, but .* says 2026-10-15/);
+  assert.match(commentFor("date_conflict")!.text, /due 2026-11-21, but .* says 2026-11-05/);
 
   // Nothing else is written: no edits, no deletes, nothing for matched, misfiled or orphan findings.
   const ops = new Set(box.writes.map((w) => w.op));
@@ -170,7 +170,7 @@ test("an edit that removes a commitment turns its task into a low-certainty orph
   const id = fileId("sync01");
   const items = JSON.parse(box.fixtures.get(id)!.extract[0].raw)
     .filter((i: { action: string }) => i.action !== "Complete Augmentation Module 1");
-  box.uploadVersion(id, box.texts.get(id)!.replace("- Dale will complete Augmentation Module 1 by October 10.\n", ""),
+  box.uploadVersion(id, box.texts.get(id)!.replace("- Dale will complete Augmentation Module 1 by October 31.\n", ""),
     [{ raw: JSON.stringify(items), model: "edited" }]);
   await runCycle(engine, [id], { trigger: "webhook" });
   const t5 = engine.state.findings.find((f) => f.task?.message === "Complete Augmentation Module 1 (Advanced Can Opening)");
