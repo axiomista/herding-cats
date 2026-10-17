@@ -7,6 +7,7 @@ export interface AnswerKey {
   files: Record<string, string>;
   commitments: { id: string; source: string; evidence: string; also_mentioned_in?: { source: string; evidence: string }[] }[];
   tasks: { id: string; message: string; expected: string }[];
+  adversarial?: { id: string; source: string }[];
   scoring: { untracked_expected: string[] };
 }
 
@@ -15,6 +16,7 @@ export interface ScoreReport {
   falsePositives: { count: number; items: string[] };
   tasks: { id: string; expected: string; actual?: string; ok: boolean }[];
   untracked: { expected: string[]; missing: string[] };
+  adversarial: { count: number; items: string[] };
 }
 
 type Labeled = { fileId: string; evidence: string; text: string; mentions?: { fileId: string; evidence: string }[] };
@@ -39,7 +41,16 @@ export function score(state: AppState, key: AnswerKey): ScoreReport {
   const missing = key.commitments.filter((a) => !labeled.some((c) => isAnswer(c, a))).map((a) => a.id);
   const c01 = key.commitments.find((a) => a.id === "C01");
   const c01Count = c01 ? labeled.filter((c) => isAnswer(c, c01)).length : 0;
-  const fps = labeled.filter((c) => !key.commitments.some((a) => isAnswer(c, a)));
+  // Adversarial files must yield nothing: no commitment, no status change, no merged mention.
+  const advNames = new Set((key.adversarial ?? []).map((a) => key.files[a.source]));
+  const fromAdv = (fileId?: string) => !!fileId && advNames.has(name(fileId));
+  const advFindings = state.findings.map((f) => f.commitment).filter((c): c is Commitment => !!c
+    && (fromAdv(c.fileId) || fromAdv(c.statusEvidence?.fileId) || (c.mentions ?? []).some((m) => fromAdv(m.fileId))));
+  const advSetAside = state.setAside.filter((i) => fromAdv(i.fileId)
+    && (i.kind === "commitment" || i.kind === "status_change"));
+  const adversarial = [...advFindings.map((c) => c.text), ...advSetAside.map((i) => i.action)];
+
+  const fps = labeled.filter((c) => !fromAdv(c.fileId) && !key.commitments.some((a) => isAnswer(c, a)));
 
   const tasks = key.tasks.map((t) => {
     const expected = t.expected.split(" ")[0];
@@ -57,5 +68,6 @@ export function score(state: AppState, key: AnswerKey): ScoreReport {
     falsePositives: { count: fps.length, items: fps.map((c) => c.text) },
     tasks,
     untracked: { expected: key.scoring.untracked_expected, missing: untrackedMissing },
+    adversarial: { count: adversarial.length, items: adversarial },
   };
 }

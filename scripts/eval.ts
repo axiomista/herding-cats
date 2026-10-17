@@ -77,5 +77,6 @@ if (record) {
 }
 
 const pass = report.recall.found === report.recall.total && report.recall.c01Count === 1
-  && report.falsePositives.count <= 1 && report.tasks.every((t) => t.ok) && !report.untracked.missing.length;
+  && report.falsePositives.count <= 1 && report.tasks.every((t) => t.ok) && !report.untracked.missing.length
+  && report.adversarial.count === 0;
 process.exit(pass ? 0 : 1);

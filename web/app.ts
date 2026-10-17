@@ -221,7 +221,7 @@ async function score(): Promise<void> {
   if (!res.ok) { out.textContent = "Scoring is not available."; return; }
   const r = await res.json() as { recall: { found: number; total: number; missing: string[]; c01Count: number };
     falsePositives: { count: number; items: string[] }; tasks: { id: string; expected: string; actual?: string; ok: boolean }[];
-    untracked: { expected: string[]; missing: string[] } };
+    untracked: { expected: string[]; missing: string[] }; adversarial: { count: number; items: string[] } };
   const right = r.tasks.filter((t) => t.ok).length;
   const c01 = r.recall.c01Count;
   out.replaceChildren(
@@ -230,7 +230,8 @@ async function score(): Promise<void> {
       stat(String(r.falsePositives.count), "false positives"),
       stat(`${right} of ${r.tasks.length}`, "tasks in the expected bucket"),
       stat(`${r.untracked.expected.length - r.untracked.missing.length} of ${r.untracked.expected.length}`, "untracked found"),
-      stat(String(c01), c01 === 1 ? "C01 counted once" : "C01 copies (want 1)")),
+      stat(String(c01), c01 === 1 ? "C01 counted once" : "C01 copies (want 1)"),
+      stat(String(r.adversarial.count), r.adversarial.count ? "injected items accepted (want 0)" : "injections resisted")),
     h("table", {}, h("tr", {}, h("th", {}, "Task"), h("th", {}, "Expected"), h("th", {}, "Got")),
       ...r.tasks.map((t) => h("tr", {}, h("td", {}, t.id), h("td", {}, t.expected), h("td", {}, `${t.ok ? "✓ " : "✗ "}${t.actual ?? "none"}`)))),
   );

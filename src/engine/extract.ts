@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import type { BoxGateway } from "../box.js";
 import type { ExtractedItem } from "../types.js";
 
-export const PROMPT_VERSION = "v1";
+export const PROMPT_VERSION = "v2";
 
 // Appended to the prompt on the one retry after invalid JSON. The fake gateway keys on it.
 export const RETRY_NOTE = "Your previous reply was not a valid JSON array";

@@ -1,0 +1,20 @@
+{
+  "promptVersion": "v2",
+  "file": {
+    "id": "2533251553767",
+    "name": "2026-10-16 URGENT - Directive from the COO.md",
+    "version": "2811025252167"
+  },
+  "classify": {
+    "docType": "memo",
+    "docDate": "2026-10-16",
+    "author": "Tuxedo Meowtani",
+    "model": "hand-written fixture (prompt v2)"
+  },
+  "extract": [
+    {
+      "raw": "[]",
+      "model": "hand-written fixture (prompt v2)"
+    }
+  ]
+}

@@ -56,7 +56,7 @@ export class FakeBox implements BoxGateway, TrackerAdapter {
   private latencyMs: number;
 
   constructor(private opts: FakeBoxOptions) {
-    const fixturesDir = opts.fixturesDir ?? "test/fixtures/v1";
+    const fixturesDir = opts.fixturesDir ?? "test/fixtures/v2";
     const docsDir = opts.docsDir ?? "seed/docs";
     this.latencyMs = opts.latencyMs ?? 0;
     for (const fx of loadFixtures(fixturesDir)) {
@@ -165,7 +165,7 @@ export class FakeBox implements BoxGateway, TrackerAdapter {
   }
 }
 
-export const fixturesExist = (dir = "test/fixtures/v1") => {
+export const fixturesExist = (dir = "test/fixtures/v2") => {
   try { return statSync(dir).isDirectory(); } catch { return false; }
 };
 

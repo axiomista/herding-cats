@@ -5,8 +5,8 @@ Overnight offline build on branch `overnight/build`, now pushed: PR #1 is open a
 ## Done
 
 - **Step 0 contracts:** `src/types.ts`, `src/box.ts` (`BoxGateway` plus the real CCG gateway on `box-node-sdk` 4.18 `sdk-gen`; it typechecks and was never called), `src/config.ts`.
-- **A1 to A6 engine:** extract (prompt v1 with one retry on invalid JSON), verify, normalize, match, certainty, apply, `runCycle`; `src/trackers/box-tasks.ts`; `config/people.yaml`.
-- **Seed data and fixtures:** `seed/` holds the answer key, `seed_tasks.py` and the 7 seed docs. `test/fixtures/v1/` holds 7 hand-written fixtures: an invalid-JSON first reply (kickoff), paraphrased evidence (sync01), an idea mislabeled as a commitment (brainstorm), and "I" as an email owner.
+- **A1 to A6 engine:** extract (prompt v2 with one retry on invalid JSON), verify, normalize, match, certainty, apply, `runCycle`; `src/trackers/box-tasks.ts`; `config/people.yaml`.
+- **Seed data and fixtures:** `seed/` holds the answer key, `seed_tasks.py` and the 8 seed docs. `test/fixtures/v2/` holds 8 hand-written fixtures: an invalid-JSON first reply (kickoff), paraphrased evidence (sync01), an idea mislabeled as a commitment (brainstorm), and "I" as an email owner. The injection doc's fixture returns `[]`; a replay test feeds it an obedient answer and checks the score fails it.
 - **Tests:** 88 passing. Unit tests cover verify, normalize, match, certainty, audit (byte for byte against the spec's sample) and webhook signatures (valid primary, valid secondary, bad, stale). The replay test checks:
   - recall 9/9, with C01 counted once;
   - 1 false positive;
@@ -74,7 +74,7 @@ Overnight offline build on branch `overnight/build`, now pushed: PR #1 is open a
 
 ## Next: needs Box credentials
 
-1. Record live fixtures to a separate folder (for example `test/fixtures/v1-live/`), so the hand-written guard fixtures in `test/fixtures/v1/` are kept. `scripts/eval.ts` always writes to `test/fixtures/<prompt version>/` today, so it needs an output-directory option first; running `--record` now would overwrite the guard fixtures.
+1. Record live fixtures to a separate folder (for example `test/fixtures/v2-live/`), so the hand-written guard fixtures in `test/fixtures/v2/` are kept. `scripts/eval.ts` always writes to `test/fixtures/<prompt version>/` today, so it needs an output-directory option first; running `--record` now would overwrite the guard fixtures.
 2. Untested live: global/properties metadata writes, `extracted_text` on a non-text file, assigning to people by user ID through the app.
 3. The webhook on the scan folder is created, but no event has been tested. Confirm both signature keys are in the secret and the task has restarted since, then check that an upload produces a finding in under a minute, a new version rescans only that file, and a task assignment queues its file.
 4. To reset the demo: `seed_tasks.py --reset` (deletes every task in the folder, including the app's), then `npx tsx scripts/reset.ts -- --yes` (deletes the app's comments and `hc*` metadata), then re-seed. Run `reset.ts` without `--yes` first to see what it would remove. Without it, the fingerprint check skips every comment on the next apply-mode run, so a rehearsal would leave the demo with no new comments. `reset.ts` typechecks but has not been run against live Box. The corpus dates were shifted forward on 2026-10-17 (DECISIONS #28), so every planted task gets its due date; the Box folder's seed files must be replaced with the renamed ones first (see the corpus date shift below).
