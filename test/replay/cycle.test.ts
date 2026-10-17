@@ -101,13 +101,14 @@ test("apply mode makes exactly the high-certainty writes, audits each, and write
   const assigns = writesOf(box, "assign").map((w: any) => w.assigneeId).sort();
   assert.deepEqual(assigns, [users.zaq, users.vanessa, users.zaq].sort(), "survey and PO to zaq, tuna filter to vanessa");
 
-  // Superseded, owner and date conflicts -> a comment on the task's file, carrying the fingerprint.
+  // Superseded and date conflicts -> a comment on the task's file, carrying the fingerprint.
   const comments = writesOf(box, "comment") as { fileId: string; text: string }[];
-  assert.equal(comments.length, 3);
+  assert.equal(comments.length, 2);
   const commentFor = (bucket: string) => comments.find((c) => c.text.includes(`fingerprint: ${bucket}|`));
   assert.equal(commentFor("superseded")?.fileId, fileId("sync01"));
   assert.match(commentFor("superseded")!.text, /The Human Acclimation Lab box order is cancelled\./);
-  assert.equal(commentFor("owner_conflict")?.fileId, fileId("kickoff"));
+  // The owner conflict is on a planted task Herding Cats did not create, so it waits for a person.
+  assert.equal(commentFor("owner_conflict"), undefined);
   assert.equal(commentFor("date_conflict")?.fileId, fileId("sync01"));
   assert.match(commentFor("date_conflict")!.text, /due 2026-11-21, but .* says 2026-11-05/);
 
@@ -118,11 +119,11 @@ test("apply mode makes exactly the high-certainty writes, audits each, and write
   // One APPLIED entry per write; low-certainty findings are logged as HELD.
   const applied = entries(box).filter((e) => e.split("\n")[0].endsWith("APPLIED"));
   const held = entries(box).filter((e) => e.split("\n")[0].endsWith("HELD"));
-  assert.equal(applied.length, 6);
+  assert.equal(applied.length, 5);
   assert.equal(applied.filter((e) => /^change: +task new-\d+ created on/m.test(e)).length, 3);
-  assert.equal(applied.filter((e) => /^change: +comment \S+ posted on/m.test(e)).length, 3);
+  assert.equal(applied.filter((e) => /^change: +comment \S+ posted on/m.test(e)).length, 2);
   assert.ok(applied.every((e) => /^outcome: +ok$/m.test(e)));
-  assert.deepEqual(held.map((e) => e.match(/^finding: +(\w+):/m)![1]).sort(), ["misfiled", "orphan", "untracked"]);
+  assert.deepEqual(held.map((e) => e.match(/^finding: +(\w+):/m)![1]).sort(), ["misfiled", "orphan", "owner_conflict", "untracked"]);
 
   // Metadata: one write per file, after every other write, with the scan marker.
   const lastOther = box.writes.map((w) => w.op).lastIndexOf("appendAudit");
@@ -213,9 +214,9 @@ test("switching to apply writes the findings already on the page", async () => {
   engine.state.mode = "apply";
   const summary = await commitWrites(engine, "click");
   assert.equal(writesOf(box, "createTask").length, 3);
-  assert.equal(writesOf(box, "comment").length, 3);
-  assert.equal(summary.applied, 6);
-  assert.equal(summary.held, 3);
+  assert.equal(writesOf(box, "comment").length, 2, "the owner conflict on a planted task is held");
+  assert.equal(summary.applied, 5);
+  assert.equal(summary.held, 4);
   for (const text of ["Draft the Human Gratitude Survey (10 questions max)", "Replace the break room tuna dispenser filter",
     "Send the signed PO to Laser Dynamics"]) {
     assert.equal(engine.state.findings.find((f) => f.commitment?.text === text)?.bucket, "matched", text);

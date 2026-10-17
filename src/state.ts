@@ -27,6 +27,7 @@ export class State {
   dismissed = new Set<string>();             // fingerprints a person dismissed
   heldLogged = new Set<string>();            // fingerprints already logged as HELD
   writing = new Set<string>();               // fingerprints whose write is in flight
+  createdTasks = new Set<string>();          // IDs of tasks this process created in Box
 
   constructor(mode: AppState["mode"]) { this.mode = mode; }
 

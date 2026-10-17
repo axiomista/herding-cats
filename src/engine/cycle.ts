@@ -148,7 +148,7 @@ export function matchAll(engine: Engine, tasks: TrackerTask[]): { findings: Find
   const withStatus = applyStatusChanges(commitments, results.flatMap((r) => r.statusChanges), config.match);
   const matched = matchFolder(withStatus, tasks, new Set(state.files.keys()), config.match);
   const findings = matched.findings
-    .map((f) => withCertainty(f, config.match))
+    .map((f) => withCertainty(f, config.match, state.createdTasks))
     .map((f) => ({ ...f, proposal: buildProposal(f, state, people) }))
     .filter((f) => !state.dismissed.has(f.fingerprint));
   return { findings, setAside: matched.setAside };
