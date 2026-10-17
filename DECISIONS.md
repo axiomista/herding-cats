@@ -41,4 +41,8 @@ None. The full design is built.
 16. **Dates.** Only explicit dates resolve ("October 23", "Oct 23, 2026", ISO). A month and day before the document date roll to the next year. Relative dates ("next Friday") are flagged and never guessed.
 17. **Owners.** "I", "me" or "myself" in an email thread resolve to the sender of the message containing the evidence. External people (`external: true`) and people with no Box user are flagged.
 18. **Unsupported types.** Supported extensions: txt, md, pdf, doc, docx, rtf, odt, html, htm, ppt, pptx, xls, xlsx.
-19. **Express 5** is what `npm install express` resolves to today; the spec names no version.
+19. **Terraform supports Express Mode.** `aws_ecs_express_gateway_service` exists in hashicorp/aws 6.69.1, so the Fargate-behind-an-ALB fallback is not needed. Scaling is pinned to min 1 / max 1.
+20. **One KMS key for the secret.** The `herding-cats/env` secret uses a dedicated KMS key with rotation, following AWS secret best practices; the execution role may decrypt only through Secrets Manager.
+21. **Deploy role trust** is limited to the repository's `production` GitHub environment, which `deploy.yml` uses.
+22. **Docker image contents.** `dist/`, production `node_modules`, `prompts/`, `config/` and `seed/answer_key.json` (for `POST /api/score`). Test fixtures and seed docs are left out, so `FAKE_BOX=1` is a local mode only.
+23. **Express 5** is what `npm install express` resolves to today; the spec names no version.

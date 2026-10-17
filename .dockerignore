@@ -1,0 +1,12 @@
+.git
+.github
+node_modules
+dist
+infra
+test
+project-plan
+seed/docs
+.env
+.env.*
+*.log
+.DS_Store

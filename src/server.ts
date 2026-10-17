@@ -119,7 +119,7 @@ export function createApp(engine: Engine, runner: CycleRunner, opts: { secureCoo
   return app;
 }
 
-async function buildEngine(config: Config): Promise<Engine> {
+export async function buildEngine(config: Config): Promise<Engine> {
   if (config.fakeBox) {
     const { fakeEngine } = await import("./fake-box.js");
     const latencyMs = Number(process.env.FAKE_BOX_LATENCY_MS ?? 300);

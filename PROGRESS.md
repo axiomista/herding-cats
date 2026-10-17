@@ -18,9 +18,12 @@ Overnight offline build on branch `overnight/build`. Source of truth: `project-p
 - `FAKE_BOX=1` dev mode, checked with curl: healthz 200; 401 then 200 after the passcode; scan 202 then 409; every bucket in state; webhook 401 on a bad signature.
 - `web/mock-state.json` generated from a fake full scan.
 
+- B6: `npm run eval` (live dry-run scan + score; `-- --record` saves fixtures) and `scripts/probe.ts` (first-hour probes). Both typecheck; neither was run (no network tonight).
+- B1: two-stage `Dockerfile` (non-root `node` user, production deps only), `.github/workflows/ci.yml` and `deploy.yml` (OIDC), Terraform in `infra/` on ECS Express Mode (`aws_ecs_express_gateway_service`, provider 6.69.1). `docker build` succeeded; `terraform validate` passed.
+
 ## In progress
 
-- B1 Dockerfile, CI and deploy workflows, Terraform; B6 `npm run eval`.
+- Page check in a browser, README, final proof.
 
 ## Blocked
 
