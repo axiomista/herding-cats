@@ -16,10 +16,10 @@ variable "image_tag" {
   default     = "latest"
 }
 
-variable "github_repo" {
-  description = "owner/name of the GitHub repository allowed to assume the deploy role"
+variable "github_oidc_sub_prefix" {
+  description = "OIDC sub claim prefix of the GitHub repository allowed to assume the deploy role (immutable owner@id/name@id form)"
   type        = string
-  default     = "axiomista/herding-cats"
+  default     = "repo:axiomista@17440089/herding-cats@1423070714"
 }
 
 variable "container_port" {

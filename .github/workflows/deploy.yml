@@ -46,7 +46,7 @@ jobs:
         working-directory: infra
         run: |
           terraform init -input=false -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}"
-          terraform apply -input=false -auto-approve -var "image_tag=${{ github.sha }}" -var "github_repo=${{ github.repository }}"
+          terraform apply -input=false -auto-approve -var "image_tag=${{ github.sha }}"
 
       - name: Wait for /healthz
         working-directory: infra
