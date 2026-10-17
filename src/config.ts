@@ -19,6 +19,7 @@ export interface Config {
            dedupeThreshold: number; dateToleranceDays: number };
   maxFileBytes: number;
   parallelFiles: number;
+  aiMonthlyBudget?: number; // (new) BOX_AI_MONTHLY_BUDGET: shown beside the AI call count
 }
 
 // Matching thresholds live in config so they can be tuned against the answer key.
@@ -63,6 +64,13 @@ export function loadConfig(env: Env = process.env): Config {
     parallelFiles: 4,
   };
   if (missing.length) throw new Error(`Missing environment variables: ${missing.join(", ")}`);
+  if (env.BOX_AI_MONTHLY_BUDGET) {
+    const budget = Number(env.BOX_AI_MONTHLY_BUDGET);
+    if (!Number.isInteger(budget) || budget <= 0) {
+      throw new Error(`BOX_AI_MONTHLY_BUDGET must be a positive whole number, got ${env.BOX_AI_MONTHLY_BUDGET}`);
+    }
+    config.aiMonthlyBudget = budget;
+  }
   if (!Number.isFinite(config.sweepIntervalMinutes) || config.sweepIntervalMinutes <= 0) {
     throw new Error("SWEEP_INTERVAL_MINUTES must be a positive number");
   }

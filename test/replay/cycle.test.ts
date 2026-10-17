@@ -351,3 +351,37 @@ test("an unchanged version still gets a current open count, and nothing is writt
   assert.equal(full.length, 7);
   assert.ok(full.every((w) => w.values.hcExtract));
 });
+
+test("findings that were ready before apply mode wait for a click; a click still writes them", async () => {
+  const { engine, box } = await fakeEngine({ mode: "dry-run" });
+  await runCycle(engine, "all", { trigger: "full_scan", full: true });
+  engine.state.mode = "apply";
+  engine.state.waiting = new Set(engine.state.findings.map((f) => f.fingerprint));
+  const summary = await commitWrites(engine, "click");
+  assert.equal(summary.applied, 0);
+  assert.equal(summary.held, 4, "low-certainty findings are still logged as held");
+  assert.equal(writesOf(box, "createTask").length + writesOf(box, "comment").length, 0);
+  assert.ok(engine.state.toAppState().waiting!.length > 0, "the page can show which findings wait");
+  await runCycle(engine, "all", { trigger: "sweep" });
+  assert.equal(writesOf(box, "createTask").length + writesOf(box, "comment").length, 0, "a later sweep leaves them too");
+});
+
+test("a finished cycle records its timing, AI calls and the folder name", async () => {
+  let t = 0;
+  const { engine } = await fakeEngine({ mode: "dry-run", now: () => new Date(Date.UTC(2026, 9, 17, 16) + (t += 1000)) });
+  await runCycle(engine, "all", { trigger: "full_scan", full: true });
+  const s = engine.state.toAppState();
+  assert.equal(s.running, undefined);
+  assert.equal(s.folderName, "The Corporation");
+  const full = s.recentCycles!.full_scan!;
+  assert.equal(full.filesChecked, 7);
+  assert.equal(full.filesScanned, 7);
+  assert.ok(full.aiCalls! > 0);
+  assert.ok(full.durationMs! > 0);
+  assert.deepEqual(s.lastCycle, full);
+  await runCycle(engine, "all", { trigger: "sweep" });
+  const sweep = engine.state.toAppState().recentCycles!.sweep!;
+  assert.equal(sweep.aiCalls, 0, "an idle sweep makes no AI calls");
+  assert.equal(sweep.filesScanned, 0);
+  assert.ok(engine.state.recentCycles.full_scan, "each trigger keeps its own last cycle");
+});

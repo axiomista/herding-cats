@@ -54,6 +54,13 @@ export function buildProposal(f: Omit<Finding, "proposal">, state: State, people
   }
 }
 
+// A comment a person edited still ends with its fingerprint, so a second post is caught as a
+// duplicate. Any fingerprint line they typed is replaced with the real one.
+export function withFingerprint(text: string, fingerprint: string): string {
+  const body = text.split(/\r?\n/).filter((line) => !/^\s*fingerprint:/.test(line)).join("\n").trim();
+  return `${body}\n\nfingerprint: ${fingerprint}`;
+}
+
 function auditEvidence(f: Finding, state: State): AuditEntry["evidence"] {
   const c = f.commitment;
   if (!c) return { quote: "", fileId: f.task!.fileId, fileVersion: "" };

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { AuditLog } from "../../src/audit.js";
-import { applyFinding, holdFinding } from "../../src/engine/apply.js";
+import { applyFinding, holdFinding, withFingerprint } from "../../src/engine/apply.js";
 import { State } from "../../src/state.js";
 import type { Finding, TrackerAdapter } from "../../src/types.js";
 
@@ -130,4 +130,9 @@ test("holding a finding does not throw when the audit upload fails, and logs it 
     assert.equal(await holdFinding(ctx, finding, "sweep"), true);
     assert.equal(ctx.state.heldLogged.has(finding.fingerprint), false);
   } finally { restore(); }
+});
+
+test("an edited comment always ends with the real fingerprint", () => {
+  assert.equal(withFingerprint("Can you link the source?", "orphan|f|task-1"), "Can you link the source?\n\nfingerprint: orphan|f|task-1");
+  assert.equal(withFingerprint("Edited.\n\nfingerprint: something-else\n", "orphan|f|task-1"), "Edited.\n\nfingerprint: orphan|f|task-1");
 });

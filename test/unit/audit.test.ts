@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { auditDate, AuditLog, formatEntry } from "../../src/audit.js";
+import { auditDate, AuditLog, formatEntry, parseEntries } from "../../src/audit.js";
 import type { BoxGateway } from "../../src/box.js";
 import type { AuditEntry, Finding } from "../../src/types.js";
 
@@ -74,4 +74,30 @@ test("appends are serialized and separated by blank lines", async () => {
   const text = await log.read("2026-10-17");
   assert.equal(text, `${SAMPLE}\n\n${SAMPLE}\n\n${SAMPLE}\n\n`);
   assert.equal(text.split("\n\n").filter(Boolean).length, 3);
+});
+
+test("parseEntries reads the spec's sample back field by field", () => {
+  const [e] = parseEntries(`${SAMPLE}\n\n`);
+  assert.equal(e.time, "2026-10-17 10:42:07 PT");
+  assert.equal(e.trigger, "webhook");
+  assert.equal(e.status, "applied");
+  assert.equal(e.fields.change, 'task 1844021 created on "2026-09-15 Weekly Sync 01.md", assigned to Dale Henderson');
+  assert.equal(e.fields.outcome, "ok");
+  assert.equal(e.fields.fingerprint, "untracked|2532048604610|tuna-filter");
+  assert.equal(e.raw, SAMPLE);
+});
+
+test("parseEntries round-trips formatEntry, including held entries and line breaks in a quote", () => {
+  const held = formatEntry({ ...entry, applied: false, change: "held", trigger: "full_scan" });
+  const broken = formatEntry({ ...entry, evidence: { ...entry.evidence, quote: "Line one.\nLine two." } });
+  const gap = formatEntry({ ...entry, evidence: { ...entry.evidence, quote: "Before.\n\nAfter." } });
+  const parsed = parseEntries([held, broken, gap].map((e) => `${e}\n\n`).join(""));
+  assert.equal(parsed.length, 3);
+  assert.equal(parsed[0].status, "held");
+  assert.equal(parsed[0].trigger, "full-scan");
+  assert.match(parsed[1].fields.evidence, /^"Line one\.\nLine two\." \(file/);
+  assert.match(parsed[2].fields.evidence, /^"Before\.\n\nAfter\." \(file/);
+  assert.equal(parsed[2].fields.outcome, undefined, "fields after the blank line stay with their entry");
+  assert.deepEqual(parseEntries(""), []);
+  assert.deepEqual(parseEntries("not an audit entry\n\n"), []);
 });

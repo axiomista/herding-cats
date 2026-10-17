@@ -54,13 +54,26 @@ export interface AuditEntry { time: string; trigger: Trigger;
   model: string; matchScore?: number; outcome: string; }
 
 // (new) The GET /api/state response.
+// (new) One finished cycle, for the status strip and the Accuracy page's timing tiles.
+export interface CycleRecord { at: string; trigger: Trigger; filesChecked: number;
+  filesScanned?: number; aiCalls?: number; durationMs?: number }
+
+// (new) What a running cycle is doing. Files are read in parallel, so the phase is the cycle's.
+export interface CycleProgress { done: number; total: number; trigger?: Trigger; startedAt?: string;
+  phase?: "files" | "match" | "write"; file?: string }
+
 export interface AppState { mode: "dry-run" | "apply"; watching: boolean;
-  lastCycle?: { at: string; trigger: AuditEntry["trigger"]; filesChecked: number };
-  running?: { done: number; total: number }; aiCallsThisMonth: number;
+  lastCycle?: CycleRecord;
+  running?: CycleProgress; aiCallsThisMonth: number;
   findings: Finding[]; setAside: ExtractedItem[];
   files?: Record<string, { name: string }>;           // (new) names for card links
   errors?: { fileId: string; message: string }[];      // (new) files the last cycle could not process
   unverified?: (ExtractedItem & { fileId: string })[]; // (new) items dropped by the evidence check
+  recentCycles?: Partial<Record<Trigger, CycleRecord>>; // (new) the last cycle of each trigger
+  folderName?: string;                                 // (new) the scan folder's name in Box
+  waiting?: string[];                                  // (new) finding IDs apply mode leaves for a click
+  sweepIntervalMinutes?: number;                       // (new) from config, added by the server
+  aiMonthlyBudget?: number;                            // (new) BOX_AI_MONTHLY_BUDGET, when set
 }
 
 export interface BoxFile { id: string; name: string; version: string; size: number }

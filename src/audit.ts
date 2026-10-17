@@ -74,6 +74,46 @@ export function formatEntry(e: AuditEntry): string {
   return [header, ...fields.map(([k, v]) => `${`${k}:`.padEnd(13)}${v}`)].join("\n");
 }
 
+// (new) One audit entry read back from a day file, for the page's audit view.
+export interface ParsedAuditEntry {
+  time: string; trigger: string; status: "applied" | "held";
+  fields: Record<string, string>;   // change, finding, evidence, certainty, model, match, outcome, fingerprint
+  raw: string;
+}
+
+const HEADER = /^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} PT) {2}(\S+) {2}(APPLIED|HELD)$/;
+const FIELD = /^(change|finding|evidence|certainty|model|match|outcome|fingerprint): +(.*)$/;
+
+// Reads formatEntry's output back into entries. A line that is not a field continues the field
+// before it, since a quote can hold a line break. A block with no header (a quote with a blank
+// line in it) continues the entry before it.
+export function parseEntries(text: string): ParsedAuditEntry[] {
+  const out: ParsedAuditEntry[] = [];
+  let lastField: string | undefined;
+  for (const block of text.split(/\n{2,}/)) {
+    const lines = block.replace(/\s+$/, "").split("\n");
+    if (!lines[0]) continue;
+    const head = HEADER.exec(lines[0]);
+    const prev = out[out.length - 1];
+    if (!head) {
+      if (prev && lastField) {
+        prev.fields[lastField] += `\n\n${lines.join("\n")}`;
+        prev.raw += `\n\n${lines.join("\n")}`;
+      }
+      continue;
+    }
+    const entry: ParsedAuditEntry = { time: head[1], trigger: head[2], status: head[3] === "APPLIED" ? "applied" : "held",
+      fields: {}, raw: lines.join("\n") };
+    lastField = undefined;
+    for (const line of lines.slice(1)) {
+      const f = FIELD.exec(line);
+      if (f) { lastField = f[1]; entry.fields[lastField] = f[2]; } else if (lastField) entry.fields[lastField] += `\n${line}`;
+    }
+    out.push(entry);
+  }
+  return out;
+}
+
 // Appends are serialized so parallel files do not race on the day file's version.
 export class AuditLog {
   private queue: Promise<void> = Promise.resolve();

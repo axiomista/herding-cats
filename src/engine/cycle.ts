@@ -165,7 +165,11 @@ export async function runCycle(engine: Engine, fileIds: string[] | "all",
   for (const id of state.files.keys()) if (!present.has(id)) state.files.delete(id);
 
   const wanted = fileIds === "all" ? files : files.filter((f) => fileIds.includes(f.id));
-  state.running = { done: 0, total: wanted.length };
+  const started = engine.now();
+  state.running = { done: 0, total: wanted.length, trigger: opts.trigger, startedAt: started.toISOString(),
+    phase: "files", file: wanted.length === 1 ? wanted[0].name : undefined };
+  // The folder's name only labels the page, so a failed lookup is retried next cycle.
+  if (!state.folderName) state.folderName = await gateway.folderName(config.scanFolderId).catch(() => undefined);
   let aiCalls = 0;
   let scanned = 0;
   const errors: State["errors"] = [];
@@ -187,14 +191,18 @@ export async function runCycle(engine: Engine, fileIds: string[] | "all",
   state.countAiCalls(aiCalls, engine.now());
   state.errors = [...errors, ...hydrated.errors];
 
+  state.running!.phase = "match";
   const tasks = (await Promise.all(files.map((f) => tracker.listTasks(f.id)))).flat();
   const { findings, setAside } = matchAll(engine, tasks);
   state.findings = findings;
   state.setAsideCommitments = setAside;
 
   // 9. Write (apply mode only): high-certainty changes, the audit entries, then metadata last.
+  state.running!.phase = "write";
   const { applied, held } = await commitWrites(engine, opts.trigger);
-  state.finishCycle(engine.now(), opts.trigger, wanted.length);
+  const finished = engine.now();
+  state.finishCycle(finished, opts.trigger, wanted.length,
+    { filesScanned: scanned, aiCalls, durationMs: finished.getTime() - started.getTime() });
   return { trigger: opts.trigger, filesChecked: wanted.length, filesScanned: scanned, aiCalls, applied, held };
 }
 
@@ -234,7 +242,8 @@ async function hydrateOthers(engine: Engine, files: BoxFile[], wanted: Set<strin
 }
 
 // Writes the current findings, rematches so a task just created leaves the untracked bucket,
-// then writes metadata. Shared by a cycle and by switching the page to apply mode.
+// then writes metadata. Shared by a cycle and by switching the page to apply mode. High-certainty
+// findings in state.waiting are left for a click; low-certainty ones are still logged as HELD.
 export async function commitWrites(engine: Engine, trigger: Trigger): Promise<{ applied: number; held: number }> {
   const { gateway, tracker, state } = engine;
   if (state.mode !== "apply") return { applied: 0, held: 0 };
@@ -249,6 +258,7 @@ export async function commitWrites(engine: Engine, trigger: Trigger): Promise<{ 
   for (const f of state.findings) {
     if (!f.proposal) continue;
     if (f.certainty === "high") {
+      if (state.waiting.has(f.fingerprint)) continue;
       if ((await applyFinding(ctx, f, trigger)).status === "applied") { applied++; touch(f); }
     } else if (await holdFinding(ctx, f, trigger)) { held++; touch(f); }
   }

@@ -91,7 +91,8 @@
             <input id="audit-date" type="date">
           </div>
         </div>
-        <pre id="audit-text" class="mono-block audit-text"></pre>
+        <div id="audit-filters" class="filters" role="group" aria-label="Filter entries"></div>
+        <ol id="audit-list" class="audit-list"></ol>
       </section>
 
       <section id="tab-accuracy" class="stack" hidden>
@@ -102,6 +103,7 @@
           </div>
           <button id="score-button" type="button" class="btn primary">Score now</button>
         </div>
+        <section id="timings" class="scores" aria-label="Cycle timings"></section>
         <div id="eval-result" class="stack"></div>
       </section>
     </main>
@@ -138,7 +140,10 @@
         <span><strong>Never</strong> deletes, edits or completes anything that already exists in Box.</span>
         <span><strong>Always</strong> writes an audit entry with the evidence behind each change.</span>
       </div>
-      <p id="apply-ready" class="soft"></p>
+      <div class="check-row">
+        <input id="apply-now" type="checkbox">
+        <label for="apply-now"><strong id="apply-now-title"></strong><br><span id="apply-now-sub" class="muted"></span></label>
+      </div>
       <div class="actions end">
         <button value="cancel" class="btn ghost">Stay in dry run</button>
         <button value="apply" class="btn primary">Switch to apply</button>

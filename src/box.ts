@@ -18,6 +18,8 @@ export interface BoxGateway {
   serviceUserId(): Promise<string>;
   // (new) A folder's ancestors from the root, for the audit-folder startup check.
   folderAncestors(folderId: string): Promise<string[]>;
+  // (new) A folder's name, for the page header.
+  folderName(folderId: string): Promise<string>;
 }
 
 export const DOC_TYPES = ["meeting notes", "memo", "email thread", "brainstorm", "policy", "spec", "other"];
@@ -227,5 +229,10 @@ export class RealBoxGateway implements BoxGateway {
   async folderAncestors(folderId: string): Promise<string[]> {
     const folder = await this.client.folders.getFolderById(folderId, { queryParams: { fields: ["path_collection"] } });
     return (folder.pathCollection?.entries ?? []).map((e) => e.id);
+  }
+
+  async folderName(folderId: string): Promise<string> {
+    const folder = await this.client.folders.getFolderById(folderId, { queryParams: { fields: ["name"] } });
+    return folder.name ?? folderId;
   }
 }
