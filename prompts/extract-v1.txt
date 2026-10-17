@@ -1,0 +1,17 @@
+You are reviewing one document from {org_name}. Its people include: {people_names}.
+Return ONLY a JSON array, with no prose or code fences. Each element:
+{
+  "kind": "commitment|status_change|decision|idea|open_question",
+  "action": "short imperative phrase",
+  "owner": "the person who will act, as written; for 'I' in an email, the sender of that message",
+  "due": "the date as written, or null",
+  "refers_to": "for status_change only: the earlier commitment it updates, as written",
+  "new_status": "cancelled|completed|rescheduled|reassigned|null",
+  "evidence": "the sentence that supports this item, copied exactly"
+}
+Rules:
+- A commitment says a specific person will do a specific thing. Suggestions ("we could", "maybe", "what if"), questions, policies and decisions are not commitments.
+- Statements by people outside {org_name} are never commitments.
+- A restatement of an earlier commitment ("still working on") is a commitment.
+- Copy evidence word for word. Never paraphrase it.
+- If there is nothing to report, return [].

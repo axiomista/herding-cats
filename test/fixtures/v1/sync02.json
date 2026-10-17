@@ -1,0 +1,20 @@
+{
+  "promptVersion": "v1",
+  "file": {
+    "id": "2532585685739",
+    "name": "2026-10-12 Weekly Sync 02.txt",
+    "version": "2810312375339"
+  },
+  "classify": {
+    "docType": "meeting notes",
+    "docDate": "2026-10-12",
+    "author": "Tuxedo Meowtani",
+    "model": "hand-written fixture (prompt v1)"
+  },
+  "extract": [
+    {
+      "raw": "[\n  {\n    \"kind\": \"decision\",\n    \"action\": \"Make cardboard boxes executive-only\",\n    \"owner\": null,\n    \"due\": null,\n    \"refers_to\": null,\n    \"new_status\": null,\n    \"evidence\": \"By decree of the Chairmeow, cardboard boxes are executive-only.\"\n  },\n  {\n    \"kind\": \"status_change\",\n    \"action\": \"Cancel the Human Acclimation Lab box order\",\n    \"owner\": null,\n    \"due\": null,\n    \"refers_to\": \"the Human Acclimation Lab box order\",\n    \"new_status\": \"cancelled\",\n    \"evidence\": \"The Human Acclimation Lab box order is cancelled.\"\n  },\n  {\n    \"kind\": \"idea\",\n    \"action\": \"Start a Sunbeam of the Month recognition program\",\n    \"owner\": \"Pixel\",\n    \"due\": null,\n    \"refers_to\": null,\n    \"new_status\": null,\n    \"evidence\": \"Pixel suggested a \\\"Sunbeam of the Month\\\" recognition program.\"\n  }\n]",
+      "model": "hand-written fixture (prompt v1)"
+    }
+  ]
+}

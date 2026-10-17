@@ -1,0 +1,24 @@
+{
+  "promptVersion": "v1",
+  "file": {
+    "id": "2532582052240",
+    "name": "2026-09-21 Kickoff - Project PURRFECT.md",
+    "version": "2810308355440"
+  },
+  "classify": {
+    "docType": "meeting notes",
+    "docDate": "2026-09-21",
+    "author": "Tuxedo Meowtani",
+    "model": "hand-written fixture (prompt v1)"
+  },
+  "extract": [
+    {
+      "raw": "Here are the items I found:\n```json\n[\n  {\n    \"kind\": \"commitment\",\n    \"action\": \"Book the Q4 All-Paws Meeting in the Great Hall\",\n    \"owner\": \"Tuxedo\",\n    \"due\": \"November 13\",\n    \"refers_to\": null,\n    \"new_status\": null,\n    \"evidence\": \"Tuxedo will book the Q4 All-Paws Meeting in the Great Hall by November 13.\"\n  },\n  {\n    \"kind\": \"commitment\",\n    \"action\": \"Draft the posture-correction pilot protocol for review\",\n    \"owner\": \"Sir Reginald Biscuits\",\n    \"due\": \"November 4\",\n    \"refers_to\": null,\n    \"new_status\": null,\n    \"evidence\": \"Sir Reginald Biscuits owns the posture-correction pilot protocol and will have a draft ready for review by November 4.\"\n  },\n  {\n    \"kind\": \"commitment\",\n    \"action\": \"Draft the Human Gratitude Survey (10 questions max)\",\n    \"owner\": \"Tuxedo\",\n    \"due\": \"October 30\",\n    \"refers_to\": null,\n    \"new_status\": null,\n    \"evidence\": \"Tuxedo will draft the Human Gratitude Survey (10 questions max; humans tire easily) by October 30.\"\n  },\n  {\n    \"kind\": \"open_question\",\n    \"action\": \"Find out whether humans are grateful for their improvements\",\n    \"owner\": null,\n    \"due\": null,\n    \"refers_to\": null,\n    \"new_status\": null,\n    \"evidence\": \"We do not currently know whether humans are grateful for their improvements, which is a gap.\"\n  }\n]\n```",
+      "model": "hand-written fixture (prompt v1)"
+    },
+    {
+      "raw": "[\n  {\n    \"kind\": \"commitment\",\n    \"action\": \"Book the Q4 All-Paws Meeting in the Great Hall\",\n    \"owner\": \"Tuxedo\",\n    \"due\": \"November 13\",\n    \"refers_to\": null,\n    \"new_status\": null,\n    \"evidence\": \"Tuxedo will book the Q4 All-Paws Meeting in the Great Hall by November 13.\"\n  },\n  {\n    \"kind\": \"commitment\",\n    \"action\": \"Draft the posture-correction pilot protocol for review\",\n    \"owner\": \"Sir Reginald Biscuits\",\n    \"due\": \"November 4\",\n    \"refers_to\": null,\n    \"new_status\": null,\n    \"evidence\": \"Sir Reginald Biscuits owns the posture-correction pilot protocol and will have a draft ready for review by November 4.\"\n  },\n  {\n    \"kind\": \"commitment\",\n    \"action\": \"Draft the Human Gratitude Survey (10 questions max)\",\n    \"owner\": \"Tuxedo\",\n    \"due\": \"October 30\",\n    \"refers_to\": null,\n    \"new_status\": null,\n    \"evidence\": \"Tuxedo will draft the Human Gratitude Survey (10 questions max; humans tire easily) by October 30.\"\n  },\n  {\n    \"kind\": \"open_question\",\n    \"action\": \"Find out whether humans are grateful for their improvements\",\n    \"owner\": null,\n    \"due\": null,\n    \"refers_to\": null,\n    \"new_status\": null,\n    \"evidence\": \"We do not currently know whether humans are grateful for their improvements, which is a gap.\"\n  }\n]",
+      "model": "hand-written fixture (prompt v1)"
+    }
+  ]
+}

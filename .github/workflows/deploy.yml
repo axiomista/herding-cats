@@ -1,0 +1,59 @@
+name: deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write # OIDC: no stored AWS keys
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: us-west-2
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push the image tagged with the commit SHA
+        env:
+          IMAGE: ${{ steps.ecr.outputs.registry }}/herding-cats:${{ github.sha }}
+        run: |
+          docker build -t "$IMAGE" .
+          docker push "$IMAGE"
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+
+      - name: Terraform apply
+        working-directory: infra
+        run: |
+          terraform init -input=false -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}"
+          terraform apply -input=false -auto-approve -var "image_tag=${{ github.sha }}" -var "github_repo=${{ github.repository }}"
+
+      - name: Wait for /healthz
+        working-directory: infra
+        run: |
+          url="$(terraform output -raw service_url)"
+          for i in $(seq 1 60); do
+            if curl -fsS "$url/healthz"; then echo; echo "healthy: $url"; exit 0; fi
+            sleep 10
+          done
+          echo "service did not become healthy: $url"; exit 1
