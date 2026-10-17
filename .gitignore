@@ -1,0 +1,31 @@
+# Local planning docs (untracked pre-organization)
+project-plan/
+
+# Dependencies and build output
+node_modules/
+dist/
+*.tsbuildinfo
+coverage/
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+*.tfvars
+!*.tfvars.example
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS and editor
+.DS_Store
+.vscode/
+.idea/
