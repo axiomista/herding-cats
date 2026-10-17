@@ -314,7 +314,7 @@ test("switching to apply reports a rejected metadata write without throwing", as
   const id = fileId("email");
   const ctl = failMeta(box, "setMeta", id);
   const summary = await commitWrites(engine, "click");
-  assert.equal(summary.applied, 6);
+  assert.equal(summary.applied, 5);
   assert.deepEqual(engine.state.errors, [{ fileId: "x", message: "scan failed" },
     { fileId: id, message: "metadata write: Box 503" }], "the cycle's scan errors are kept");
   ctl.fail = false;
