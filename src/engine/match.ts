@@ -10,12 +10,24 @@ export type StatusChange = ExtractedItem & { fileId: string };
 const STOPWORDS = new Set(["the", "a", "an", "for", "of", "on", "in", "to", "by", "and", "with", "at"]);
 
 export function slug(text: string): string {
-  return text.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim().split(" ")
-    .filter((w) => w && !STOPWORDS.has(w)).slice(0, 4).join("-");
+  const words = text.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim().split(" ")
+    .filter((w) => w && !STOPWORDS.has(w));
+  const readable = words.slice(0, 4).join("-") || "item";
+  // The readable prefix can collide ("book the hall" vs "book the hall tonight"). The hash is of
+  // every significant word, so two different actions do not share a fingerprint.
+  const hash = createHash("sha1").update(words.join(" ")).digest("hex").slice(0, 6);
+  return `${readable}-${hash}`;
 }
 
 export function fingerprint(bucket: Bucket, c?: Commitment, t?: TrackerTask): string {
   return c ? `${bucket}|${c.fileId}|${slug(c.text)}` : `${bucket}|${t!.fileId}|task-${t!.id}`;
+}
+
+// Comments end with a line `fingerprint: <fingerprint>`. Match that line exactly: a shorter
+// fingerprint must not count as already posted when it is a prefix of a longer one.
+export function commentCarriesFingerprint(message: string, fingerprint: string): boolean {
+  const line = `fingerprint: ${fingerprint}`;
+  return message.split(/\r?\n/).some((part) => part.trim() === line);
 }
 
 export const findingId = (fp: string) => createHash("sha1").update(fp).digest("hex").slice(0, 12);

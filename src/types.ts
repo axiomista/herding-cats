@@ -31,7 +31,8 @@ export type Proposal =
 export interface TrackerAdapter {
   listTasks(fileId: string): Promise<TrackerTask[]>;
   createTask(fileId: string, message: string, assigneeId?: string, due?: string): Promise<TrackerTask>;
-  comment(fileId: string, text: string): Promise<void>;
+  // Resolves to the Box comment id, so the audit entry can name it.
+  comment(fileId: string, text: string): Promise<string>;
   // (new) True when a comment on the file already carries this fingerprint.
   hasComment(fileId: string, fingerprint: string): Promise<boolean>;
 }

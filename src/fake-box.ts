@@ -6,6 +6,7 @@ import { join } from "node:path";
 import type { BoxGateway } from "./box.js";
 import { auditFileName } from "./box.js";
 import { RETRY_NOTE } from "./engine/extract.js";
+import { commentCarriesFingerprint } from "./engine/match.js";
 import type { People } from "./engine/normalize.js";
 import type { BoxFile, TrackerAdapter, TrackerTask } from "./types.js";
 
@@ -19,7 +20,7 @@ export interface Fixture {
 export type FakeWrite =
   | { op: "createTask"; fileId: string; taskId: string; message: string; due?: string }
   | { op: "assign"; taskId: string; assigneeId: string }
-  | { op: "comment"; fileId: string; text: string }
+  | { op: "comment"; fileId: string; text: string; commentId: string }
   | { op: "setMeta"; fileId: string; values: Record<string, string> }
   | { op: "appendAudit"; date: string; text: string };
 
@@ -51,6 +52,7 @@ export class FakeBox implements BoxGateway, TrackerAdapter {
   writes: FakeWrite[] = [];
   aiCalls = 0;
   private nextTaskId = 1;
+  private nextCommentId = 1;
   private latencyMs: number;
 
   constructor(private opts: FakeBoxOptions) {
@@ -151,13 +153,15 @@ export class FakeBox implements BoxGateway, TrackerAdapter {
     return { ...task, assigneeIds: [...task.assigneeIds] };
   }
 
-  async comment(fileId: string, text: string): Promise<void> {
+  async comment(fileId: string, text: string): Promise<string> {
+    const commentId = `c${this.nextCommentId++}`;
     this.comments.set(fileId, [...(this.comments.get(fileId) ?? []), text]);
-    this.writes.push({ op: "comment", fileId, text });
+    this.writes.push({ op: "comment", fileId, text, commentId });
+    return commentId;
   }
 
   async hasComment(fileId: string, fingerprint: string): Promise<boolean> {
-    return (this.comments.get(fileId) ?? []).some((c) => c.includes(fingerprint));
+    return (this.comments.get(fileId) ?? []).some((c) => commentCarriesFingerprint(c, fingerprint));
   }
 }
 

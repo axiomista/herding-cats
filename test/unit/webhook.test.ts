@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { fileIdsFromEvent, signBody, verifyBoxSignature } from "../../src/triggers/webhook.js";
+import { createWebhookHandler, fileIdsFromEvent, signBody, verifyBoxSignature } from "../../src/triggers/webhook.js";
 
 const keys = { primary: "primary-key", secondary: "secondary-key" };
 const now = new Date("2026-10-17T17:00:00Z");
@@ -33,6 +33,30 @@ test("stale timestamp", () => {
   const edge = "2026-10-17T16:50:00Z";
   assert.equal(verifyBoxSignature(body, { "box-delivery-timestamp": edge, "box-signature-primary": signBody(body, edge, keys.primary) }, keys, now), true);
   assert.equal(verifyBoxSignature(body, { "box-signature-primary": signBody(body, "", keys.primary) }, keys, now), false);
+});
+
+test("the handler answers immediately, ignores own events, and drops duplicate ids", () => {
+  const queued: string[][] = [];
+  const handler = createWebhookHandler({
+    keys, now: () => now,
+    serviceUserId: "service-account",
+    runner: { enqueue: (ids) => { queued.push(ids === "all" ? [] : ids); } },
+  });
+  const deliver = (event: unknown, id = "evt-1") => {
+    const raw = Buffer.from(JSON.stringify(event));
+    const res = { statusCode: 0, body: undefined as unknown, status(code: number) { this.statusCode = code; return this; }, json(body: unknown) { this.body = body; } };
+    handler({ body: raw, headers: headers({ "box-delivery-id": id, "box-signature-primary": signBody(raw, ts, keys.primary) }) } as never, res as never);
+    return res;
+  };
+  const uploaded = deliver({ id: "evt-1", created_by: { id: "someone" }, source: { id: "123", type: "file" } });
+  assert.equal(uploaded.statusCode, 200);
+  assert.deepEqual(uploaded.body, { queued: 1 });
+  assert.deepEqual(queued, [["123"]]);
+  const own = deliver({ id: "evt-2", created_by: { id: "service-account" }, source: { id: "123", type: "file" } }, "evt-2");
+  assert.deepEqual(own.body, { queued: 0, ignored: "own event" });
+  const again = deliver({ id: "evt-1", created_by: { id: "someone" }, source: { id: "123", type: "file" } });
+  assert.deepEqual(again.body, { queued: 0, duplicate: true });
+  assert.equal(queued.length, 1);
 });
 
 test("events map to the uploaded file or the task's file", () => {

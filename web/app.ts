@@ -72,13 +72,18 @@ function schedulePoll(): void {
 }
 
 async function refresh(): Promise<void> {
-  const res = await api("/api/state");
-  if (!res.ok) return;
-  state = await res.json() as AppState;
-  $("passcode").hidden = true;
-  $("app").hidden = false;
-  render();
-  schedulePoll();
+  try {
+    const res = await api("/api/state");
+    if (res.status === 401) return; // showPasscode already stopped the timer
+    if (!res.ok) { schedulePoll(); return; }
+    state = await res.json() as AppState;
+    $("passcode").hidden = true;
+    $("app").hidden = false;
+    render();
+    schedulePoll();
+  } catch {
+    schedulePoll();
+  }
 }
 
 function render(): void {
@@ -106,7 +111,16 @@ function renderStatus(s: AppState): void {
   };
   const other = s.mode === "apply" ? "dry-run" : "apply";
   const mode = h("button", { type: "button", class: "secondary" }, `Switch to ${other}`);
-  mode.onclick = async () => { await post("/api/mode", { mode: other }); await refresh(); };
+  mode.onclick = async () => {
+    const res = await post("/api/mode", { mode: other });
+    if (res.status === 409) notice = "A cycle is already running.";
+    else if (!res.ok) notice = "Could not change mode.";
+    else if (other === "apply") {
+      const out = await res.json() as { applied?: number; held?: number };
+      notice = `Apply mode: wrote ${out.applied ?? 0}, held ${out.held ?? 0}.`;
+    } else notice = "Dry run. Later cycles write nothing.";
+    await refresh();
+  };
   const errors = (s.errors ?? []).map((e) => h("li", {}, `${fileName(e.fileId)}: ${e.message}`));
   $("status").replaceChildren(
     h("div", { class: "row spread" }, h("h2", {}, "Status"), h("div", { class: "row" }, scan, mode)),
@@ -205,16 +219,18 @@ async function score(): Promise<void> {
   const res = await post("/api/score");
   const out = $("eval-result");
   if (!res.ok) { out.textContent = "Scoring is not available."; return; }
-  const r = await res.json() as { recall: { found: number; total: number; missing: string[] };
+  const r = await res.json() as { recall: { found: number; total: number; missing: string[]; c01Count: number };
     falsePositives: { count: number; items: string[] }; tasks: { id: string; expected: string; actual?: string; ok: boolean }[];
     untracked: { expected: string[]; missing: string[] } };
   const right = r.tasks.filter((t) => t.ok).length;
+  const c01 = r.recall.c01Count;
   out.replaceChildren(
     h("div", { class: "stats" },
       stat(`${r.recall.found} of ${r.recall.total}`, "commitment recall"),
       stat(String(r.falsePositives.count), "false positives"),
       stat(`${right} of ${r.tasks.length}`, "tasks in the expected bucket"),
-      stat(`${r.untracked.expected.length - r.untracked.missing.length} of ${r.untracked.expected.length}`, "untracked found")),
+      stat(`${r.untracked.expected.length - r.untracked.missing.length} of ${r.untracked.expected.length}`, "untracked found"),
+      stat(String(c01), c01 === 1 ? "C01 counted once" : "C01 copies (want 1)")),
     h("table", {}, h("tr", {}, h("th", {}, "Task"), h("th", {}, "Expected"), h("th", {}, "Got")),
       ...r.tasks.map((t) => h("tr", {}, h("td", {}, t.id), h("td", {}, t.expected), h("td", {}, `${t.ok ? "✓ " : "✗ "}${t.actual ?? "none"}`)))),
   );

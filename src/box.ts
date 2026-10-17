@@ -34,6 +34,23 @@ export const CLASSIFY_FIELDS = [
 
 export const auditFileName = (date: string) => `audit-${date}.txt`;
 
+export type MetadataOp = { op: "add" | "replace" | "remove"; path: string; value?: string };
+
+// Box rejects `add` once a key exists, and rejects an empty string. Use `replace` for keys already
+// on the file, `add` for new ones, and `remove` to clear a key we would otherwise write as "".
+export function metadataPatch(existing: Record<string, string>, values: Record<string, string>): MetadataOp[] {
+  const ops: MetadataOp[] = [];
+  for (const [key, value] of Object.entries(values)) {
+    const path = `/${key}`;
+    if (!value) {
+      if (key in existing) ops.push({ op: "remove", path });
+      continue;
+    }
+    ops.push({ op: key in existing ? "replace" : "add", path, value });
+  }
+  return ops;
+}
+
 const TEXT_EXTENSIONS = /\.(txt|md)$/i;
 
 async function streamToString(stream: Readable | undefined): Promise<string> {
@@ -42,6 +59,9 @@ async function streamToString(stream: Readable | undefined): Promise<string> {
   for await (const chunk of stream) chunks.push(Buffer.from(chunk));
   return Buffer.concat(chunks).toString("utf8");
 }
+
+const statusCode = (err: unknown) =>
+  (err as { responseInfo?: { statusCode?: number } }).responseInfo?.statusCode;
 
 function modelName(info: { models?: readonly { name?: string; provider?: string }[] } | undefined): string {
   const names = (info?.models ?? []).map((m) => m.name).filter(Boolean);
@@ -135,13 +155,22 @@ export class RealBoxGateway implements BoxGateway {
   }
 
   async setMeta(fileId: string, values: Record<string, string>): Promise<void> {
-    try {
-      await this.client.fileMetadata.updateFileMetadataById(fileId, "global", "properties",
-        Object.entries(values).map(([k, v]) => ({ op: "add" as const, path: `/${k}`, value: v })));
-    } catch (err) {
-      if ((err as { responseInfo?: { statusCode?: number } }).responseInfo?.statusCode !== 404) throw err;
-      await this.client.fileMetadata.createFileMetadataById(fileId, "global", "properties", values);
+    const existing = await this.getMeta(fileId);
+    const ops = metadataPatch(existing, values);
+    if (!ops.length) return;
+    if (Object.keys(existing).length === 0) {
+      const created: Record<string, string> = {};
+      for (const op of ops) if (op.value !== undefined) created[op.path.slice(1)] = op.value;
+      try {
+        await this.client.fileMetadata.createFileMetadataById(fileId, "global", "properties", created);
+        return;
+      } catch (err) {
+        if (statusCode(err) !== 409) throw err;
+      }
     }
+    const current = Object.keys(existing).length === 0 ? await this.getMeta(fileId) : existing;
+    const patch = metadataPatch(current, values);
+    if (patch.length) await this.client.fileMetadata.updateFileMetadataById(fileId, "global", "properties", patch);
   }
 
   private async findAuditFile(date: string): Promise<string | undefined> {

@@ -47,14 +47,25 @@ export function fileIdsFromEvent(event: BoxEvent): string[] {
   return [];
 }
 
+const SEEN_LIMIT = 500;
+
 export function createWebhookHandler(opts: {
   keys: { primary: string; secondary: string };
   runner: Pick<CycleRunner, "enqueue">;
-  serviceUserId: () => Promise<string>;
+  // Resolved once at startup. The handler must not call Box before it answers.
+  serviceUserId: string;
   now?: () => Date;
 }) {
   const seen = new Set<string>();
-  return async (req: Request, res: Response) => {
+  const order: string[] = [];
+  const remember = (id: string) => {
+    if (!id || seen.has(id)) return false;
+    seen.add(id);
+    order.push(id);
+    if (order.length > SEEN_LIMIT) seen.delete(order.shift()!);
+    return true;
+  };
+  return (req: Request, res: Response) => {
     const body = Buffer.isBuffer(req.body) ? req.body : Buffer.from("");
     if (!verifyBoxSignature(body, req.headers, opts.keys, opts.now?.())) {
       res.status(401).json({ error: "invalid signature" });
@@ -64,9 +75,8 @@ export function createWebhookHandler(opts: {
     try { event = JSON.parse(body.toString("utf8")); } catch { res.status(400).json({ error: "invalid JSON" }); return; }
     const deliveryId = String(req.headers["box-delivery-id"] ?? "");
     const eventId = event.id ?? deliveryId;
-    if (eventId && seen.has(eventId)) { res.status(200).json({ queued: 0, duplicate: true }); return; }
-    if (eventId) seen.add(eventId);
-    if (event.created_by?.id && event.created_by.id === await opts.serviceUserId().catch(() => "")) {
+    if (eventId && !remember(eventId)) { res.status(200).json({ queued: 0, duplicate: true }); return; }
+    if (opts.serviceUserId && event.created_by?.id === opts.serviceUserId) {
       res.status(200).json({ queued: 0, ignored: "own event" });
       return;
     }

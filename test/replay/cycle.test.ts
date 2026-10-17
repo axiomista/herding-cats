@@ -3,7 +3,7 @@
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import { test } from "node:test";
-import { runCycle } from "../../src/engine/cycle.js";
+import { commitWrites, runCycle } from "../../src/engine/cycle.js";
 import { PROMPT_VERSION } from "../../src/engine/extract.js";
 import { FakeBox, fakeEngine } from "../../src/fake-box.js";
 import { type AnswerKey, score } from "../../src/score.js";
@@ -19,7 +19,7 @@ const entries = (box: FakeBox) => auditText(box).split("\n\n").filter(Boolean);
 test("fixtures exist for every seed file under the current prompt version", () => {
   for (const k of Object.keys(key.files)) {
     const path = `test/fixtures/${PROMPT_VERSION}/${k}.json`;
-    assert.ok(existsSync(path), `missing fixture ${path}; record with npm run eval -- --record`);
+    assert.ok(existsSync(path), `missing fixture ${path}; the hand-written guard fixtures belong in this folder`);
     const fx = JSON.parse(readFileSync(path, "utf8"));
     assert.equal(fx.promptVersion, PROMPT_VERSION);
     assert.equal(fx.file.name, key.files[k]);
@@ -92,7 +92,7 @@ test("apply mode makes exactly the high-certainty writes, audits each, and write
   const held = entries(box).filter((e) => e.split("\n")[0].endsWith("HELD"));
   assert.equal(applied.length, 6);
   assert.equal(applied.filter((e) => /^change: +task new-\d+ created on/m.test(e)).length, 3);
-  assert.equal(applied.filter((e) => /^change: +comment posted on/m.test(e)).length, 3);
+  assert.equal(applied.filter((e) => /^change: +comment \S+ posted on/m.test(e)).length, 3);
   assert.ok(applied.every((e) => /^outcome: +ok$/m.test(e)));
   assert.deepEqual(held.map((e) => e.match(/^finding: +(\w+):/m)![1]).sort(), ["misfiled", "orphan", "untracked"]);
 
@@ -176,4 +176,39 @@ test("an edit that removes a commitment turns its task into a low-certainty orph
   const t5 = engine.state.findings.find((f) => f.task?.message === "Complete Augmentation Module 1 (Advanced Can Opening)");
   assert.equal(t5?.bucket, "orphan");
   assert.equal(t5?.certainty, "low");
+});
+
+test("switching to apply writes the findings already on the page", async () => {
+  const { engine, box } = await fakeEngine({ mode: "dry-run" });
+  await runCycle(engine, "all", { trigger: "full_scan", full: true });
+  assert.equal(box.writes.length, 0);
+  engine.state.mode = "apply";
+  const summary = await commitWrites(engine, "click");
+  assert.equal(writesOf(box, "createTask").length, 3);
+  assert.equal(writesOf(box, "comment").length, 3);
+  assert.equal(summary.applied, 6);
+  assert.equal(summary.held, 3);
+  for (const text of ["Draft the Human Gratitude Survey (10 questions max)", "Replace the break room tuna dispenser filter",
+    "Send the signed PO to Laser Dynamics"]) {
+    assert.equal(engine.state.findings.find((f) => f.commitment?.text === text)?.bucket, "matched", text);
+  }
+});
+
+test("after a restart, a one-file webhook still supersedes T4 and misfiles T7", async () => {
+  const first = await fakeEngine({ mode: "apply" });
+  await runCycle(first.engine, "all", { trigger: "full_scan", full: true });
+  const second = await fakeEngine({ mode: "dry-run" });
+  second.engine.gateway = first.box;
+  second.engine.tracker = first.box;
+  const calls = first.box.aiCalls;
+  const sweep = await runCycle(second.engine, [fileId("sync02")], { trigger: "webhook" });
+  assert.equal(first.box.aiCalls - calls, 0, "restored from hcExtract, no AI calls");
+  assert.equal(sweep.filesScanned, 0);
+  const findings = second.engine.state.findings;
+  assert.equal(findings.find((f) => f.task?.message.startsWith("Order 50 cardboard boxes"))?.bucket, "superseded");
+  assert.equal(findings.find((f) => f.task?.message.startsWith("Submit revised R&D treat budget"))?.bucket, "misfiled");
+  for (const text of ["Draft the Human Gratitude Survey (10 questions max)", "Replace the break room tuna dispenser filter",
+    "Send the signed PO to Laser Dynamics"]) {
+    assert.equal(findings.find((f) => f.commitment?.text === text)?.bucket, "matched", text);
+  }
 });

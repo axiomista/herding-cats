@@ -9,7 +9,7 @@ import { AuditLog } from "./audit.js";
 import { createBoxClient, RealBoxGateway } from "./box.js";
 import { assertAuditOutsideScan, type Config, loadConfig } from "./config.js";
 import { applyFinding } from "./engine/apply.js";
-import { CycleBusyError, CycleRunner, type Engine } from "./engine/cycle.js";
+import { commitWrites, CycleBusyError, CycleRunner, type Engine } from "./engine/cycle.js";
 import { loadPrompt } from "./engine/extract.js";
 import { loadPeople } from "./engine/normalize.js";
 import { PasscodeLimiter } from "./passcode-limit.js";
@@ -29,7 +29,7 @@ const sameText = (a: string, b: string) => {
   return x.length === y.length && timingSafeEqual(x, y);
 };
 
-export function createApp(engine: Engine, runner: CycleRunner, opts: { secureCookies: boolean; webDir?: string }) {
+export function createApp(engine: Engine, runner: CycleRunner, opts: { secureCookies: boolean; webDir?: string; serviceUserId: string }) {
   const { config, state } = engine;
   const app = express();
   app.set("trust proxy", 1);
@@ -41,7 +41,7 @@ export function createApp(engine: Engine, runner: CycleRunner, opts: { secureCoo
   app.post("/webhooks/box", express.raw({ type: "*/*", limit: "1mb" }), createWebhookHandler({
     keys: { primary: config.webhookPrimaryKey, secondary: config.webhookSecondaryKey },
     runner,
-    serviceUserId: () => engine.gateway.serviceUserId(),
+    serviceUserId: opts.serviceUserId,
   }));
 
   app.use(express.json({ limit: "100kb" }));
@@ -87,26 +87,43 @@ export function createApp(engine: Engine, runner: CycleRunner, opts: { secureCoo
     const finding = state.findings.find((f) => f.id === req.params.id);
     if (!finding) { res.status(404).json({ error: "no such finding" }); return; }
     const action = req.body?.action;
-    if (action === "dismiss") {
-      state.dismissed.add(finding.fingerprint);
-      state.findings = state.findings.filter((f) => f.id !== finding.id);
-      res.json({ status: "dismissed" });
-      return;
+    try {
+      if (action === "dismiss") {
+        await runner.exclusive(async () => {
+          state.dismissed.add(finding.fingerprint);
+          state.findings = state.findings.filter((f) => f.id !== finding.id);
+        });
+        res.json({ status: "dismissed" });
+        return;
+      }
+      const kind = action === "create_task" ? "task" : action === "comment" ? "comment" : undefined;
+      if (!kind) { res.status(400).json({ error: "action must be create_task, comment or dismiss" }); return; }
+      if (finding.proposal?.kind !== kind) { res.status(400).json({ error: `this finding has no ${kind} to write` }); return; }
+      const result = await runner.exclusive(() => applyFinding({
+        tracker: engine.tracker, audit: engine.audit, state, people: engine.people, now: engine.now,
+      }, finding, "click"));
+      if (result.status === "applied") state.findings = state.findings.filter((f) => f.id !== finding.id);
+      res.status(result.status === "failed" ? 502 : 200).json(result);
+    } catch (err) {
+      if (err instanceof CycleBusyError) { res.status(409).json({ error: err.message }); return; }
+      throw err;
     }
-    const kind = action === "create_task" ? "task" : action === "comment" ? "comment" : undefined;
-    if (!kind) { res.status(400).json({ error: "action must be create_task, comment or dismiss" }); return; }
-    if (finding.proposal?.kind !== kind) { res.status(400).json({ error: `this finding has no ${kind} to write` }); return; }
-    const result = await applyFinding({ tracker: engine.tracker, audit: engine.audit, state, people: engine.people,
-      now: engine.now }, finding, "click");
-    if (result.status === "applied") state.findings = state.findings.filter((f) => f.id !== finding.id);
-    res.status(result.status === "failed" ? 502 : 200).json(result);
   });
 
-  app.post("/api/mode", session, (req, res) => {
+  app.post("/api/mode", session, async (req, res) => {
     const mode = req.body?.mode;
     if (mode !== "dry-run" && mode !== "apply") { res.status(400).json({ error: "mode must be dry-run or apply" }); return; }
-    state.mode = mode;
-    res.json({ mode });
+    try {
+      // Switching to apply writes the findings already on the page. It does not wait for the next sweep.
+      const summary = await runner.exclusive(async () => {
+        state.mode = mode;
+        return mode === "apply" ? commitWrites(engine, "click") : { applied: 0, held: 0 };
+      });
+      res.json({ mode, ...summary });
+    } catch (err) {
+      if (err instanceof CycleBusyError) { res.status(409).json({ error: err.message }); return; }
+      throw err;
+    }
   });
 
   app.get("/api/audit", session, async (req, res) => {
@@ -148,8 +165,9 @@ export async function buildEngine(config: Config): Promise<Engine> {
 async function main() {
   const config = loadConfig();
   const engine = await buildEngine(config);
+  const serviceUserId = await engine.gateway.serviceUserId();
   const runner = new CycleRunner(engine);
-  const app = createApp(engine, runner, { secureCookies: !config.fakeBox });
+  const app = createApp(engine, runner, { secureCookies: !config.fakeBox, serviceUserId });
   app.listen(config.port, () => {
     console.log(`herding-cats listening on :${config.port} (${config.fakeBox ? "FAKE_BOX" : "Box"}, ${config.mode})`);
     startSweeper(runner, config.sweepIntervalMinutes);

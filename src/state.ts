@@ -25,6 +25,7 @@ export class State {
   errors: { fileId: string; message: string }[] = [];
   dismissed = new Set<string>();             // fingerprints a person dismissed
   heldLogged = new Set<string>();            // fingerprints already logged as HELD
+  writing = new Set<string>();               // fingerprints whose write is in flight
 
   constructor(mode: AppState["mode"]) { this.mode = mode; }
 
@@ -47,6 +48,10 @@ export class State {
       kind: "commitment", action: c.text, owner: c.owner, due: c.due, evidence: c.evidence, fileId: c.fileId,
       newStatus: c.status === "cancelled" ? "cancelled" : "completed",
     }));
+    // Rescheduled and reassigned updates are not findings. Show them with the other set-asides
+    // so a status the matcher does not apply is still visible.
+    const otherStatus = results.flatMap((r) => r.statusChanges.filter((s) =>
+      s.newStatus !== "cancelled" && s.newStatus !== "completed"));
     return {
       mode: this.mode,
       watching: this.watching,
@@ -54,7 +59,7 @@ export class State {
       running: this.running,
       aiCallsThisMonth: this.aiCalls,
       findings: this.findings,
-      setAside: [...results.flatMap((r) => r.setAside), ...cancelled],
+      setAside: [...results.flatMap((r) => r.setAside), ...cancelled, ...otherStatus],
       files: Object.fromEntries([...this.names].map(([id, name]) => [id, { name }])),
       errors: this.errors,
       unverified: results.flatMap((r) => r.unverified),

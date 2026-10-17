@@ -79,12 +79,17 @@ export async function applyFinding(ctx: WriteContext, f: Finding, trigger: Trigg
   : Promise<WriteResult> {
   const p = override ?? f.proposal;
   if (!p) return { status: "skipped", change: "nothing to write", outcome: "ok" };
-  let change: string;
+  // Check-and-set is synchronous, so two clicks cannot both pass it before the first await.
+  if (ctx.state.writing.has(f.fingerprint)) return { status: "skipped", change: "already writing", outcome: "ok" };
+  ctx.state.writing.add(f.fingerprint);
+  let change = `${p.kind} not written`;
   let outcome = "ok";
+  let wrote = false;
   try {
     if (p.kind === "task") {
       const task = await ctx.tracker.createTask(p.fileId, p.message, p.assigneeId, p.due) as
         { id: string; assignError?: string; dueError?: string; assigneeIds: string[] };
+      wrote = true;
       const who = task.assigneeIds.length ? `assigned to ${p.assigneeName ?? userName(ctx.people, p.assigneeId!)}` : "unassigned";
       change = `task ${task.id} created on "${fileName(ctx.state, p.fileId)}", ${who}`;
       if (task.dueError) change += `, without due date ${p.due} (Box: ${task.dueError})`;
@@ -93,15 +98,20 @@ export async function applyFinding(ctx: WriteContext, f: Finding, trigger: Trigg
       if (await ctx.tracker.hasComment(p.fileId, f.fingerprint)) {
         return { status: "skipped", change: "comment already posted", outcome: "ok" };
       }
-      await ctx.tracker.comment(p.fileId, p.text);
-      change = `comment posted on "${fileName(ctx.state, p.fileId)}"`;
+      const commentId = await ctx.tracker.comment(p.fileId, p.text);
+      wrote = true;
+      change = `comment ${commentId} posted on "${fileName(ctx.state, p.fileId)}"`;
     }
   } catch (err) {
     change = `${p.kind} not written`;
     outcome = err instanceof Error ? err.message : String(err);
+  } finally {
+    ctx.state.writing.delete(f.fingerprint);
   }
   await ctx.audit.append(entry(ctx, f, trigger, true, change, outcome));
-  return { status: outcome === "ok" ? "applied" : "failed", change, outcome };
+  // A task that was created counts as applied even when the assignment failed. Leaving the card
+  // up would make the next click create a second task. The audit outcome still carries Box's error.
+  return { status: wrote || outcome === "ok" ? "applied" : "failed", change, outcome };
 }
 
 // Low-certainty findings in apply mode wait for a person; each is logged as HELD once per process.

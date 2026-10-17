@@ -36,6 +36,30 @@ const SUPPORTED = /\.(txt|md|pdf|docx?|rtf|odt|html?|pptx?|xlsx?)$/i;
 
 export const scanMarker = (version: string) => `${version}@${PROMPT_VERSION}`;
 
+// Saved on the file as hcExtract so a later cycle can restore commitments without another AI call.
+// Without it, a webhook after a restart would match one file's promises against every task and
+// mis-file the ones that live in a document it did not re-read.
+export function snapshotOf(file: FileResult): string {
+  return JSON.stringify({
+    docType: file.docType, docDate: file.docDate, model: file.model,
+    commitments: file.commitments, statusChanges: file.statusChanges,
+    setAside: file.setAside, unverified: file.unverified,
+  });
+}
+
+function restoreFile(state: State, file: BoxFile, raw: string | undefined): boolean {
+  if (!raw) return false;
+  let snap: Partial<FileResult>;
+  try { snap = JSON.parse(raw) as Partial<FileResult>; } catch { return false; }
+  if (typeof snap.docType !== "string" || !Array.isArray(snap.commitments)) return false;
+  state.files.set(file.id, {
+    id: file.id, name: file.name, version: file.version, docType: snap.docType, docDate: snap.docDate,
+    model: snap.model ?? "", commitments: snap.commitments, statusChanges: snap.statusChanges ?? [],
+    setAside: snap.setAside ?? [], unverified: snap.unverified ?? [],
+  });
+  return true;
+}
+
 // Inventory rules: subfolders are never listed as files; skip unsupported types and files over
 // the size limit. The audit folder is a separate folder and is never listed here.
 export function inventory(files: BoxFile[], maxBytes: number): BoxFile[] {
@@ -52,14 +76,24 @@ async function pool<T>(items: T[], limit: number, fn: (item: T) => Promise<void>
 async function scanFile(engine: Engine, file: BoxFile, full: boolean): Promise<{ scanned: boolean; aiCalls: number }> {
   const { gateway, state, people } = engine;
   const marker = scanMarker(file.version);
-  // 1. Skip check. Full scans ignore it.
+  // 1. Skip check. Full scans ignore it. A matching marker restores the saved extraction when this
+  // process has not seen the file yet, so a restart does not forget the other documents.
   if (!full) {
     let known = state.markers.get(file.id);
+    let extract: string | undefined;
     if (!known) {
-      known = (await gateway.getMeta(file.id)).hcScannedVersion;
+      const meta = await gateway.getMeta(file.id);
+      known = meta.hcScannedVersion;
+      extract = meta.hcExtract;
       if (known) state.metaMarkers.set(file.id, known);
     }
-    if (known === marker) { state.markers.set(file.id, marker); return { scanned: false, aiCalls: 0 }; }
+    if (known === marker) {
+      state.markers.set(file.id, marker);
+      if (state.files.has(file.id) || restoreFile(state, file, extract)) return { scanned: false, aiCalls: 0 };
+      // The marker is set but the snapshot is missing or unreadable. Re-extract, and write metadata
+      // again so the next restart can restore it.
+      state.metaMarkers.delete(file.id);
+    }
   }
   // 2. Classify.
   const doc = await gateway.classify(file.id);
@@ -139,8 +173,11 @@ export async function runCycle(engine: Engine, fileIds: string[] | "all",
       state.running!.done++;
     }
   });
+  const hydrated = await hydrateOthers(engine, files, new Set(wanted.map((f) => f.id)));
+  aiCalls += hydrated.aiCalls;
+  scanned += hydrated.scanned;
   state.countAiCalls(aiCalls, engine.now());
-  state.errors = errors;
+  state.errors = [...errors, ...hydrated.errors];
 
   const tasks = (await Promise.all(files.map((f) => tracker.listTasks(f.id)))).flat();
   const { findings, setAside } = matchAll(engine, tasks);
@@ -148,31 +185,75 @@ export async function runCycle(engine: Engine, fileIds: string[] | "all",
   state.setAsideCommitments = setAside;
 
   // 9. Write (apply mode only): high-certainty changes, the audit entries, then metadata last.
-  let applied = 0;
-  let held = 0;
-  if (state.mode === "apply") {
-    const ctx: WriteContext = { tracker, audit: engine.audit, state, people: engine.people, now: engine.now };
-    for (const f of findings) {
-      if (!f.proposal) continue;
-      if (f.certainty === "high") {
-        if ((await applyFinding(ctx, f, opts.trigger)).status !== "skipped") applied++;
-      } else if (await holdFinding(ctx, f, opts.trigger)) held++;
-    }
-    const at = engine.now().toISOString();
-    for (const r of state.files.values()) {
-      const marker = scanMarker(r.version);
-      if (state.metaMarkers.get(r.id) === marker) continue;
-      const open = findings.filter((f) => (f.commitment?.fileId ?? f.task?.fileId) === r.id && f.bucket !== "matched");
-      await gateway.setMeta(r.id, {
-        hcDocType: r.docType, hcDocDate: r.docDate ?? "", hcLastChecked: at,
-        hcOpenFindings: String(open.length), hcLastChange: opts.trigger,
-        hcScannedVersion: marker,
-      });
-      state.metaMarkers.set(r.id, marker);
-    }
-  }
+  const { applied, held } = await commitWrites(engine, opts.trigger);
   state.finishCycle(engine.now(), opts.trigger, wanted.length);
   return { trigger: opts.trigger, filesChecked: wanted.length, filesScanned: scanned, aiCalls, applied, held };
+}
+
+// Files this cycle was not asked to scan still have to be in memory when their snapshot is on
+// Box. Otherwise a one-file webhook after a restart mis-files commitments that live elsewhere.
+async function hydrateOthers(engine: Engine, files: BoxFile[], wanted: Set<string>)
+  : Promise<{ aiCalls: number; scanned: number; errors: State["errors"] }> {
+  const { gateway, state } = engine;
+  let aiCalls = 0;
+  let scanned = 0;
+  const errors: State["errors"] = [];
+  for (const file of files) {
+    if (wanted.has(file.id) || state.files.has(file.id)) continue;
+    const meta = await gateway.getMeta(file.id);
+    const marker = scanMarker(file.version);
+    if (meta.hcScannedVersion !== marker) continue;
+    state.markers.set(file.id, marker);
+    state.metaMarkers.set(file.id, marker);
+    if (restoreFile(state, file, meta.hcExtract)) continue;
+    state.metaMarkers.delete(file.id);
+    try {
+      const r = await scanFile(engine, file, true);
+      aiCalls += r.aiCalls;
+      if (r.scanned) scanned++;
+    } catch (err) {
+      state.markers.delete(file.id);
+      errors.push({ fileId: file.id, message: err instanceof Error ? err.message : String(err) });
+    }
+  }
+  return { aiCalls, scanned, errors };
+}
+
+// Writes the current findings, rematches so a task just created leaves the untracked bucket,
+// then writes metadata. Shared by a cycle and by switching the page to apply mode.
+export async function commitWrites(engine: Engine, trigger: Trigger): Promise<{ applied: number; held: number }> {
+  const { gateway, tracker, state } = engine;
+  if (state.mode !== "apply") return { applied: 0, held: 0 };
+  const ctx: WriteContext = { tracker, audit: engine.audit, state, people: engine.people, now: engine.now };
+  let applied = 0;
+  let held = 0;
+  for (const f of state.findings) {
+    if (!f.proposal) continue;
+    if (f.certainty === "high") {
+      if ((await applyFinding(ctx, f, trigger)).status === "applied") applied++;
+    } else if (await holdFinding(ctx, f, trigger)) held++;
+  }
+  const listed = await gateway.listFiles(engine.config.scanFolderId);
+  for (const f of listed) state.names.set(f.id, f.name);
+  const files = inventory(listed, engine.config.maxFileBytes);
+  const tasks = (await Promise.all(files.map((f) => tracker.listTasks(f.id)))).flat();
+  const matched = matchAll(engine, tasks);
+  state.findings = matched.findings;
+  state.setAsideCommitments = matched.setAside;
+  const at = engine.now().toISOString();
+  for (const r of state.files.values()) {
+    const marker = scanMarker(r.version);
+    if (state.metaMarkers.get(r.id) === marker) continue;
+    const open = state.findings.filter((f) => (f.commitment?.fileId ?? f.task?.fileId) === r.id && f.bucket !== "matched");
+    await gateway.setMeta(r.id, {
+      hcDocType: r.docType, hcDocDate: r.docDate ?? "", hcLastChecked: at,
+      hcOpenFindings: String(open.length), hcLastChange: trigger,
+      hcExtract: snapshotOf(r),
+      hcScannedVersion: marker,
+    });
+    state.metaMarkers.set(r.id, marker);
+  }
+  return { applied, held };
 }
 
 export class CycleBusyError extends Error {
@@ -182,7 +263,7 @@ export class CycleBusyError extends Error {
 // One cycle at a time. Scan now gets a 409 while one runs; webhook and sweep work is queued and
 // runs as soon as the current cycle ends.
 export class CycleRunner {
-  private current?: Promise<CycleSummary>;
+  private current?: Promise<unknown>;
   private pending = new Set<string>();
   private pendingAll = false;
   private pendingTrigger: Trigger = "webhook";
@@ -192,13 +273,21 @@ export class CycleRunner {
 
   get running(): boolean { return !!this.current; }
 
-  run(fileIds: string[] | "all", opts: { trigger: Trigger; full?: boolean }): Promise<CycleSummary> {
+  // One cycle, click, or mode switch at a time. Throws CycleBusyError synchronously when busy,
+  // so a route can answer 409 before any write starts.
+  exclusive<T>(fn: () => Promise<T>): Promise<T> {
     if (this.current) throw new CycleBusyError();
-    const p = runCycle(this.engine, fileIds, opts);
+    const p = fn().finally(() => { this.current = undefined; this.drain(); });
     this.current = p;
-    const done = () => { this.current = undefined; this.drain(); };
-    p.then(done, (err) => { this.engine.state.running = undefined; done(); this.onError(err); });
     return p;
+  }
+
+  run(fileIds: string[] | "all", opts: { trigger: Trigger; full?: boolean }): Promise<CycleSummary> {
+    return this.exclusive(() => runCycle(this.engine, fileIds, opts).catch((err) => {
+      this.engine.state.running = undefined;
+      this.onError(err);
+      throw err;
+    }));
   }
 
   enqueue(fileIds: string[] | "all", trigger: Trigger): void {

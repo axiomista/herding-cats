@@ -1,6 +1,7 @@
 // TrackerAdapter for Box Tasks. createTask is two calls: create the task, then assign it.
 import type { BoxClient } from "box-node-sdk/sdk-gen";
 import { dateTimeFromString, dateTimeToString } from "box-node-sdk/sdk-gen/internal/utils";
+import { commentCarriesFingerprint } from "../engine/match.js";
 import type { TrackerAdapter, TrackerTask } from "../types.js";
 
 // A due date is stored as 5pm Pacific on that day, as seed_tasks.py does.
@@ -46,9 +47,10 @@ export class BoxTasksTracker implements TrackerAdapter {
     try {
       task = await create(true);
     } catch (err) {
-      if (!due || (err as { responseInfo?: { statusCode?: number } }).responseInfo?.statusCode !== 400) throw err;
-      dueError = (err as { responseInfo?: { body?: { message?: string } } }).responseInfo?.body?.message
-        ?? (err instanceof Error ? err.message : String(err));
+      const pastDue = pastDueError(err);
+      // Only a due date Box rejected is retried. Any other 400 is a real failure.
+      if (!due || !pastDue) throw err;
+      dueError = pastDue;
       task = await create(false);
     }
     const created: TrackerTask & { assignError?: string; dueError?: string } =
@@ -66,12 +68,21 @@ export class BoxTasksTracker implements TrackerAdapter {
     return created;
   }
 
-  async comment(fileId: string, text: string): Promise<void> {
-    await this.client.comments.createComment({ message: text, item: { id: fileId, type: "file" } });
+  async comment(fileId: string, text: string): Promise<string> {
+    const created = await this.client.comments.createComment({ message: text, item: { id: fileId, type: "file" } });
+    return created.id ?? "";
   }
 
   async hasComment(fileId: string, fingerprint: string): Promise<boolean> {
     const comments = await this.client.comments.getFileComments(fileId, { queryParams: { fields: ["message"] } });
-    return (comments.entries ?? []).some((c) => (c.message ?? "").includes(fingerprint));
+    return (comments.entries ?? []).some((c) => commentCarriesFingerprint(c.message ?? "", fingerprint));
   }
+}
+
+// Box rejects a due date in the past with a 400 whose message says so. Other 400s must surface.
+function pastDueError(err: unknown): string | undefined {
+  const info = (err as { responseInfo?: { statusCode?: number; body?: { message?: string } } }).responseInfo;
+  const message = info?.body?.message ?? (err instanceof Error ? err.message : "");
+  if (info?.statusCode !== 400 || !/due date/i.test(message) || !/past/i.test(message)) return undefined;
+  return message;
 }

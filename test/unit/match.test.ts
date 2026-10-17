@@ -1,8 +1,9 @@
+import { createHash } from "node:crypto";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { MATCH_DEFAULTS } from "../../src/config.js";
-import { applyStatusChanges, bucketFor, fingerprint, matchFolder, slug } from "../../src/engine/match.js";
+import { applyStatusChanges, bucketFor, commentCarriesFingerprint, fingerprint, matchFolder, slug } from "../../src/engine/match.js";
 import { loadPeople } from "../../src/engine/normalize.js";
 import type { Commitment, TrackerTask } from "../../src/types.js";
 
@@ -122,11 +123,21 @@ test("a cancellation with no commitment in memory still finds the open task", ()
   assert.equal(findings.find((f) => f.task?.id === "T4")?.bucket, "superseded");
 });
 
-test("fingerprints are stable and readable", () => {
-  assert.equal(slug("Replace the break room tuna dispenser filter"), "replace-break-room-tuna");
+test("fingerprints are stable and readable, and a shared prefix does not collide", () => {
+  const words = "replace break room tuna dispenser filter";
+  const hash = createHash("sha1").update(words).digest("hex").slice(0, 6);
+  assert.equal(slug("Replace the break room tuna dispenser filter"), `replace-break-room-tuna-${hash}`);
+  assert.notEqual(
+    slug("Replace the break room tuna dispenser filter"),
+    slug("Replace the break room tuna dispenser housing"),
+  );
   assert.equal(fingerprint("untracked", { ...base, fileId: "2532048604610", text: "Replace the break room tuna dispenser filter" }),
-    "untracked|2532048604610|replace-break-room-tuna");
+    `untracked|2532048604610|replace-break-room-tuna-${hash}`);
   assert.equal(fingerprint("orphan", undefined, { ...task, id: "T6", fileId: "sync02" }), "orphan|sync02|task-T6");
+  const short = "untracked|1|book";
+  const longer = "untracked|1|book-the-hall";
+  assert.equal(commentCarriesFingerprint(`Herding Cats: hello\n\nfingerprint: ${longer}`, short), false);
+  assert.equal(commentCarriesFingerprint(`Herding Cats: hello\n\nfingerprint: ${short}`, short), true);
 });
 
 test("a restatement worded too differently to merge folds into the commitment holding its task", () => {

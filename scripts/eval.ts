@@ -1,6 +1,7 @@
 // npm run eval: scans the live folder in dry run and scores it against the answer key.
-// `npm run eval -- --record` also saves each file's AI answers under the prompt version, as
-// fixtures for the replay test. `-- --state <file>` saves the full findings as JSON.
+// `npm run eval -- --record` saves each file's AI answers under test/fixtures/<version>-live/.
+// `--record-dir <dir>` chooses another folder. Neither path may be the hand-written guard
+// fixtures in test/fixtures/<version>/. `-- --state <file>` saves the full findings as JSON.
 // Uses AI units: run it after prompt or matching changes.
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { loadConfig } from "../src/config.js";
@@ -10,7 +11,18 @@ import type { Fixture } from "../src/fake-box.js";
 import { type AnswerKey, score } from "../src/score.js";
 import { buildEngine } from "../src/server.js";
 
-const record = process.argv.includes("--record");
+const recordDir = (): string | undefined => {
+  const flag = process.argv.indexOf("--record-dir");
+  const requested = flag > 0 ? process.argv[flag + 1] : undefined;
+  if (!process.argv.includes("--record") && !requested) return undefined;
+  const dir = requested ?? `test/fixtures/${PROMPT_VERSION}-live`;
+  const guarded = `test/fixtures/${PROMPT_VERSION}`;
+  if (!dir || dir.replace(/\/+$/, "") === guarded) {
+    throw new Error(`Refusing to record into ${guarded}; that folder holds the hand-written guard fixtures. Use --record-dir.`);
+  }
+  return dir;
+};
+const record = recordDir();
 const stateArg = process.argv.indexOf("--state");
 const statePath = stateArg > 0 ? process.argv[stateArg + 1] : undefined;
 const key = JSON.parse(readFileSync("seed/answer_key.json", "utf8")) as AnswerKey;
@@ -54,7 +66,7 @@ console.log(JSON.stringify({ seconds: (Date.now() - started) / 1000, summary, re
 if (statePath) writeFileSync(statePath, `${JSON.stringify(engine.state.toAppState(), null, 2)}\n`);
 
 if (record) {
-  const dir = `test/fixtures/${PROMPT_VERSION}`;
+  const dir = record;
   mkdirSync(dir, { recursive: true });
   const keyByName = new Map(Object.entries((key as unknown as { files: Record<string, string> }).files).map(([k, n]) => [n, k]));
   for (const fx of recorded.values()) {

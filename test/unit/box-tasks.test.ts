@@ -41,6 +41,12 @@ test("createTask retries without a past due date and says why", async () => {
   assert.deepEqual(t.assigneeIds, ["u"]);
 });
 
+test("createTask does not drop the due date on an unrelated 400", async () => {
+  const { client, calls } = fakeClient({ failWith: 400 });
+  await assert.rejects(new BoxTasksTracker(client).createTask("f", "m", "u", "2026-10-02"));
+  assert.equal(calls.length, 1);
+});
+
 test("createTask does not retry other errors", async () => {
   const { client, calls } = fakeClient({ failWith: 403 });
   await assert.rejects(new BoxTasksTracker(client).createTask("f", "m", "u", "2026-10-02"));
