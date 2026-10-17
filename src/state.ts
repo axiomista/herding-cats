@@ -20,12 +20,14 @@ export class State {
   names = new Map<string, string>();
   markers = new Map<string, string>();       // scan markers this process knows, by file ID
   metaMarkers = new Map<string, string>();   // scan markers already written to Box metadata
+  metaCounts = new Map<string, string>();    // hcOpenFindings last written to Box, by file ID
   findings: Finding[] = [];
   setAsideCommitments: Commitment[] = [];
   errors: { fileId: string; message: string }[] = [];
   dismissed = new Set<string>();             // fingerprints a person dismissed
   heldLogged = new Set<string>();            // fingerprints already logged as HELD
   writing = new Set<string>();               // fingerprints whose write is in flight
+  createdTasks = new Set<string>();          // IDs of tasks this process created in Box
 
   constructor(mode: AppState["mode"]) { this.mode = mode; }
 

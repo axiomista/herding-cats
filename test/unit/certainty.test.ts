@@ -7,11 +7,12 @@ import type { Bucket, Commitment, TrackerTask } from "../../src/types.js";
 const c: Commitment = { id: "c", fileId: "f", fileVersion: "1", text: "Do it", evidence: "e",
   owner: "Dale Henderson", ownerUserId: "u1", due: "2026-10-10", dueAbsolute: true, status: "open", flags: [] };
 const t: TrackerTask = { id: "t", fileId: "f", message: "Do it", assigneeIds: ["u1"], completed: false };
-const finding = (bucket: Bucket, over: { commitment?: Commitment | undefined; task?: TrackerTask | undefined; score?: number; rivalScore?: number } = {}) =>
-  withCertainty({ id: "x", fingerprint: "fp", bucket, commitment: c, task: t, score: 100, rivalScore: 40, ...over }, MATCH_DEFAULTS);
+const finding = (bucket: Bucket, over: { commitment?: Commitment | undefined; task?: TrackerTask | undefined; score?: number; rivalScore?: number } = {},
+  createdTasks?: ReadonlySet<string>) =>
+  withCertainty({ id: "x", fingerprint: "fp", bucket, commitment: c, task: t, score: 100, rivalScore: 40, ...over }, MATCH_DEFAULTS, createdTasks);
 
 test("high when every check passes", () => {
-  for (const b of ["superseded", "owner_conflict", "date_conflict", "matched"] as Bucket[]) {
+  for (const b of ["superseded", "date_conflict", "matched"] as Bucket[]) {
     assert.equal(finding(b).certainty, "high", b);
   }
   assert.equal(finding("untracked", { task: undefined, score: 40 }).certainty, "high");
@@ -53,4 +54,14 @@ test("untracked is low when a task scored as a possible match but went elsewhere
   assert.equal(f.checks.pairing, false);
   assert.equal(f.certainty, "low");
   assert.equal(finding("untracked", { task: undefined, score: 59 }).certainty, "high");
+});
+
+test("an owner conflict is written automatically only on a task Herding Cats created", () => {
+  const theirs = finding("owner_conflict");
+  assert.equal(theirs.checks.bucket, false);
+  assert.equal(theirs.certainty, "low");
+  assert.equal(finding("owner_conflict", {}, new Set(["other"])).certainty, "low");
+  const ours = finding("owner_conflict", {}, new Set([t.id]));
+  assert.equal(ours.checks.bucket, true);
+  assert.equal(ours.certainty, "high");
 });

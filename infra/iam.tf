@@ -94,7 +94,7 @@ data "aws_iam_policy_document" "deploy_trust" {
     condition {
       test     = "StringEquals"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:${var.github_repo}:environment:production"]
+      values   = ["${var.github_oidc_sub_prefix}:environment:production"]
     }
   }
 }
@@ -104,8 +104,19 @@ resource "aws_iam_role" "deploy" {
   assume_role_policy = data.aws_iam_policy_document.deploy_trust.json
 }
 
-# The deploy role pushes images and runs terraform apply on this stack, so it can manage the
-# resources defined here. Scope it further once the stack is stable.
+# The deploy role pushes images and runs terraform apply on this stack. It gets no IAM write
+# actions: any of them (PutRolePolicy, AttachRolePolicy, UpdateAssumeRolePolicy) would let the
+# deploy job grant itself, or a role it can pass to a task, AdministratorAccess. A change to the
+# roles or policies in this file is therefore applied by an admin, not by deploy.yml; the deploy
+# job's apply only needs to read them.
+locals {
+  stack_role_arns = [
+    aws_iam_role.execution.arn,
+    aws_iam_role.task.arn,
+    aws_iam_role.infrastructure.arn,
+  ]
+}
+
 data "aws_iam_policy_document" "deploy" {
   statement {
     sid       = "EcrLogin"
@@ -125,12 +136,31 @@ data "aws_iam_policy_document" "deploy" {
     actions = [
       "ecr:*", "ecs:*", "logs:*", "secretsmanager:DescribeSecret", "secretsmanager:GetResourcePolicy",
       "secretsmanager:TagResource", "secretsmanager:UpdateSecret", "kms:Describe*", "kms:Get*", "kms:List*",
-      "kms:TagResource", "kms:EnableKeyRotation", "iam:Get*", "iam:List*", "iam:PassRole",
-      "iam:TagRole", "iam:UpdateAssumeRolePolicy", "iam:PutRolePolicy", "iam:AttachRolePolicy",
-      "iam:DetachRolePolicy", "iam:DeleteRolePolicy", "ec2:Describe*", "elasticloadbalancing:Describe*",
+      "kms:TagResource", "kms:EnableKeyRotation", "ec2:Describe*", "elasticloadbalancing:Describe*",
       "application-autoscaling:Describe*", "sts:GetCallerIdentity",
     ]
     resources = ["*"]
+  }
+  statement {
+    sid       = "ReadIam"
+    actions   = ["iam:Get*", "iam:List*"]
+    resources = ["*"]
+  }
+  statement {
+    sid       = "TagStackRoles"
+    actions   = ["iam:TagRole", "iam:UntagRole"]
+    resources = local.stack_role_arns
+  }
+  # Only the stack's own roles, and only to ECS.
+  statement {
+    sid       = "PassStackRoles"
+    actions   = ["iam:PassRole"]
+    resources = local.stack_role_arns
+    condition {
+      test     = "StringEquals"
+      variable = "iam:PassedToService"
+      values   = ["ecs.amazonaws.com", "ecs-tasks.amazonaws.com"]
+    }
   }
   statement {
     sid       = "TerraformState"

@@ -71,7 +71,20 @@ function entry(ctx: WriteContext, f: Finding, trigger: Trigger, applied: boolean
   };
 }
 
-export type WriteResult = { status: "applied" | "skipped" | "failed"; change: string; outcome: string };
+export type WriteResult = { status: "applied" | "skipped" | "failed"; change: string; outcome: string; auditError?: string };
+
+// A failed audit upload must not undo a write Box already made: the caller would keep the card up
+// and the next click would create a second task. The error is logged and returned instead of thrown.
+async function record(ctx: WriteContext, e: AuditEntry): Promise<string | undefined> {
+  try {
+    await ctx.audit.append(e);
+    return undefined;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(`audit entry not written (${e.finding.fingerprint}: ${e.change}):`, message);
+    return message;
+  }
+}
 
 // Makes the finding's proposed write and records it. A comment whose fingerprint is already on
 // the file is skipped, so a write is never made twice.
@@ -90,6 +103,7 @@ export async function applyFinding(ctx: WriteContext, f: Finding, trigger: Trigg
       const task = await ctx.tracker.createTask(p.fileId, p.message, p.assigneeId, p.due) as
         { id: string; assignError?: string; dueError?: string; assigneeIds: string[] };
       wrote = true;
+      ctx.state.createdTasks.add(task.id);
       const who = task.assigneeIds.length ? `assigned to ${p.assigneeName ?? userName(ctx.people, p.assigneeId!)}` : "unassigned";
       change = `task ${task.id} created on "${fileName(ctx.state, p.fileId)}", ${who}`;
       if (task.dueError) change += `, without due date ${p.due} (Box: ${task.dueError})`;
@@ -108,16 +122,20 @@ export async function applyFinding(ctx: WriteContext, f: Finding, trigger: Trigg
   } finally {
     ctx.state.writing.delete(f.fingerprint);
   }
-  await ctx.audit.append(entry(ctx, f, trigger, true, change, outcome));
+  const auditError = await record(ctx, entry(ctx, f, trigger, true, change, outcome));
   // A task that was created counts as applied even when the assignment failed. Leaving the card
   // up would make the next click create a second task. The audit outcome still carries Box's error.
-  return { status: wrote || outcome === "ok" ? "applied" : "failed", change, outcome };
+  const status = wrote || outcome === "ok" ? "applied" : "failed";
+  return auditError === undefined ? { status, change, outcome } : { status, change, outcome, auditError };
 }
 
 // Low-certainty findings in apply mode wait for a person; each is logged as HELD once per process.
 export async function holdFinding(ctx: WriteContext, f: Finding, trigger: Trigger): Promise<boolean> {
   if (ctx.state.heldLogged.has(f.fingerprint)) return false;
   ctx.state.heldLogged.add(f.fingerprint);
-  await ctx.audit.append(entry(ctx, f, trigger, false, "held", "ok"));
+  // The finding is held either way; a failed audit write is retried on the next cycle.
+  if (await record(ctx, entry(ctx, f, trigger, false, "held", "ok")) !== undefined) {
+    ctx.state.heldLogged.delete(f.fingerprint);
+  }
   return true;
 }

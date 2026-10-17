@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { MATCH_DEFAULTS } from "../../src/config.js";
 import { applyStatusChanges, bucketFor, commentCarriesFingerprint, fingerprint, matchFolder, slug } from "../../src/engine/match.js";
+import { withCertainty } from "../../src/engine/certainty.js";
 import { loadPeople } from "../../src/engine/normalize.js";
 import type { Commitment, TrackerTask } from "../../src/types.js";
 
@@ -112,7 +113,9 @@ test("a cancellation in one document updates the commitment from another", () =>
     evidence: "The Human Acclimation Lab box order is cancelled." }], MATCH_DEFAULTS);
   const c5 = cs.find((c) => c.id === "C05")!;
   assert.equal(c5.status, "cancelled");
-  assert.deepEqual(c5.statusEvidence, { fileId: "sync02", evidence: "The Human Acclimation Lab box order is cancelled." });
+  const { score, ...ev } = c5.statusEvidence!;
+  assert.deepEqual(ev, { fileId: "sync02", evidence: "The Human Acclimation Lab box order is cancelled." });
+  assert.ok(score! >= MATCH_DEFAULTS.matchThreshold, `score ${score}`);
 });
 
 test("a cancellation with no commitment in memory still finds the open task", () => {
@@ -121,6 +124,36 @@ test("a cancellation with no commitment in memory still finds the open task", ()
     evidence: "The Human Acclimation Lab box order is cancelled." }], MATCH_DEFAULTS);
   const { findings } = matchFolder(cs, seedTasks(), new Set(), MATCH_DEFAULTS);
   assert.equal(findings.find((f) => f.task?.id === "T4")?.bucket, "superseded");
+});
+
+// Live run, 2026-10-17: the model labeled the cancellation a decision, with no refers_to, and
+// gave C05 its short wording. The cancellation scores 45 against that text but 83 against C05's
+// evidence, and no other commitment comes within the rival gap.
+test("a cancellation that matches only the commitment's evidence still supersedes its task", () => {
+  const cs = seedCommitments().map((c) => c.id === "C05" ? { ...c, text: "order 50 cardboard boxes" } : c);
+  const out = applyStatusChanges(cs, [{ kind: "decision", action: "Cancel Human Acclimation Lab box order",
+    newStatus: "cancelled", fileId: "sync02", evidence: "The Human Acclimation Lab box order is cancelled." }],
+  MATCH_DEFAULTS);
+  const c5 = out.find((c) => c.id === "C05")!;
+  assert.equal(c5.status, "cancelled");
+  assert.ok(c5.statusEvidence!.score! < MATCH_DEFAULTS.matchThreshold, `score ${c5.statusEvidence!.score}`);
+  assert.equal(out.length, cs.length, "attached to C05, not added as a commitment of its own");
+
+  const f = matchFolder(out, seedTasks(), allFiles, MATCH_DEFAULTS).findings.find((x) => x.task?.id === "T4")!;
+  assert.equal(f.bucket, "superseded");
+  const checked = withCertainty(f, MATCH_DEFAULTS);
+  assert.equal(checked.checks.status, false);
+  assert.equal(checked.certainty, "low", "a weak status match waits for a person");
+});
+
+test("a cancellation with no clear best commitment changes none of them", () => {
+  const cs: Commitment[] = [
+    { ...base, id: "a", text: "Order 50 cardboard boxes", evidence: "Biscuits will order 50 cardboard boxes." },
+    { ...base, id: "b", text: "Order 40 cardboard boxes", evidence: "Dale will order 40 cardboard boxes." },
+  ];
+  const out = applyStatusChanges(cs, [{ kind: "decision", action: "Cancel the cardboard box order",
+    newStatus: "cancelled", fileId: "f2", evidence: "The cardboard box order is cancelled." }], MATCH_DEFAULTS);
+  assert.deepEqual(out.slice(0, 2).map((c) => c.status), ["open", "open"]);
 });
 
 test("fingerprints are stable and readable, and a shared prefix does not collide", () => {

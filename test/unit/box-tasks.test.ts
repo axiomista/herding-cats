@@ -52,3 +52,46 @@ test("createTask does not retry other errors", async () => {
   await assert.rejects(new BoxTasksTracker(client).createTask("f", "m", "u", "2026-10-02"));
   assert.equal(calls.length, 1);
 });
+
+// A comments endpoint paged by offset/limit like Box's, recording each offset asked for.
+function commentsClient(messages: string[], opts: { omitTotal?: boolean } = {}) {
+  const offsets: number[] = [];
+  const client = {
+    comments: {
+      async getFileComments(_fileId: string, o: { queryParams: { limit: number; offset: number } }) {
+        const { limit, offset } = o.queryParams;
+        offsets.push(offset);
+        const entries = messages.slice(offset, offset + limit).map((message) => ({ message }));
+        return { entries, offset, limit, ...(opts.omitTotal ? {} : { totalCount: messages.length }) };
+      },
+    },
+  } as unknown as BoxClient;
+  return { client, offsets };
+}
+
+const fp = "hc:abc123";
+const filler = (n: number) => Array.from({ length: n }, (_, i) => `comment ${i}`);
+
+test("hasComment finds a fingerprint on the last page", async () => {
+  const { client, offsets } = commentsClient([...filler(2000), `done\nfingerprint: ${fp}`]);
+  assert.equal(await new BoxTasksTracker(client).hasComment("f", fp), true);
+  assert.deepEqual(offsets, [0, 1000, 2000]);
+});
+
+test("hasComment stops paging once the fingerprint is found", async () => {
+  const { client, offsets } = commentsClient([...filler(500), `done\nfingerprint: ${fp}`, ...filler(3000)]);
+  assert.equal(await new BoxTasksTracker(client).hasComment("f", fp), true);
+  assert.deepEqual(offsets, [0]);
+});
+
+test("hasComment walks every page and returns false when absent", async () => {
+  const { client, offsets } = commentsClient(filler(2000));
+  assert.equal(await new BoxTasksTracker(client).hasComment("f", fp), false);
+  assert.deepEqual(offsets, [0, 1000]);
+});
+
+test("hasComment ends on an empty page when Box gives no totalCount", async () => {
+  const { client, offsets } = commentsClient(filler(1500), { omitTotal: true });
+  assert.equal(await new BoxTasksTracker(client).hasComment("f", fp), false);
+  assert.deepEqual(offsets, [0, 1000, 1500]);
+});

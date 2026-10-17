@@ -59,6 +59,7 @@ Overnight offline build on branch `overnight/build`, now pushed: PR #1 is open a
 - A fresh account creates ECS's service-linked roles on first use (`AWSServiceRoleForECS`, `AWSServiceRoleForElasticLoadBalancing`, `AWSServiceRoleForApplicationAutoScaling_ECSService`), and the first calls fail while the roles propagate. All three exist now, so later deploys are not affected.
 - The `herding-cats/env` secret must be key/value JSON with the exact key names; a malformed key name stopped every task ("did not contain json key BOX_CLIENT_ID"), and the circuit breaker failed the deployment.
 - The Express endpoint already includes `https://`; `service_url` now adds the scheme only if it is missing. Secret entries are sorted to match what ECS returns, so plans show no reordering diff.
+- Pipeline deploys (2026-10-17): the first `deploy.yml` run could not assume the deploy role because this repo's OIDC tokens use GitHub's immutable subject (`repo:axiomista@17440089/herding-cats@1423070714:...`); #5 fixed the trust, applied once by hand since the pipeline could not sign in to change it. A cancelled run then left a stale state lock (released with `terraform force-unlock`) and an already-pushed image tag; ECR tags are immutable, so `deploy.yml` now skips the build and push when the commit's image exists, and a re-run goes straight to Terraform. Don't cancel a run during `Terraform apply`: the service update may already have started, and state falls behind AWS until the next apply.
 
 ## Done after the review (2026-10-17, not committed)
 
@@ -71,6 +72,8 @@ Overnight offline build on branch `overnight/build`, now pushed: PR #1 is open a
 
 - Box rejects past due dates, and by the demo most seed due dates had passed. Document dates moved 13 days and due dates 21 days (DECISIONS #28). Four seed files were renamed for their new dates; the answer key, the guard fixtures, the tests that read the seed docs and `web/mock-state.json` were updated to match. Fake-Box eval is unchanged: recall 9/9, 1 false positive (the brainstorm guard fixture), T1 to T7 correct.
 - **Box needs the new files.** In The Corporation, replace the four renamed files and the brainstorm and email files with the versions in `seed/docs/`, then `seed_tasks.py --reset`, `npx tsx scripts/reset.ts -- --yes`, and `seed_tasks.py`. Re-run the live dry-run eval afterwards (about 15 AI calls).
+- Done: the six files were uploaded as new versions of the same Box files (IDs kept, the four dated ones renamed; SHA-1 matches `seed/docs/`), `reset.ts` found nothing to remove, the tasks were reset and re-seeded with every due date.
+- Live dry-run eval after the re-seed: recall 9/9, 0 false positives, 6 of 7 tasks. T4 came out matched: the model labeled the box order's cancellation a decision, which the cycle set aside. Fixed (DECISIONS #29); the live re-run gives 7 of 7, with T4 superseded at low certainty (status match 83), so apply mode holds its comment for a click.
 
 ## Next: needs Box credentials
 
@@ -84,5 +87,5 @@ Overnight offline build on branch `overnight/build`, now pushed: PR #1 is open a
 1. Merge PR #1; merging deploys from `main`. The GitHub `production` environment and its variables `AWS_DEPLOY_ROLE_ARN` and `TF_STATE_BUCKET` are already set (as environment variables, which `deploy.yml` reads through `environment: production`).
 2. Run the gate checklist on AWS: a full scan from the live page in under 90 seconds, and Score under `?dev=1`. The live eval above ran from a laptop.
 3. Restart check: in dry run, scan markers live only in memory (DECISIONS #10), so a dry-run restart rescans every file. The 0-AI-call restart check holds only after apply mode has written markers to Box.
-4. Narrow the deploy role's `ManageStack` permissions once the stack is stable.
+4. The deploy role no longer has IAM write actions, so changes to roles or policies in `infra/iam.tf` must be applied by an admin (`--profile herding-cats`) before `deploy.yml` can apply. The first deploy after this change can still apply it, because the old policy allows it.
 5. Point `AWS_PROFILE` (and the AWS MCP server) at the `herding-cats` IAM profile instead of root.

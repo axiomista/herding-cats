@@ -4,47 +4,148 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Herding Cats</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..700&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header class="top">
-    <h1>🐈‍⬛ Herding Cats</h1>
-    <p class="tagline">Promises made in documents, checked against the tasks meant to track them.</p>
-  </header>
+  <svg hidden>
+    <symbol id="logo" viewBox="0 0 32 32">
+      <path d="M8 14 C8 9 9 6 10 4 L13 8 C15 7.4 17 7.4 19 8 L22 4 C23 6 24 9 24 14 Z" fill="var(--logo-ears)"></path>
+      <circle cx="13" cy="11" r="1.3" fill="var(--bg)"></circle>
+      <circle cx="19" cy="11" r="1.3" fill="var(--bg)"></circle>
+      <rect x="4" y="13" width="24" height="15" rx="3" fill="var(--primary)"></rect>
+      <path d="M4 18 H28" stroke="var(--logo-line)" stroke-width="1.5"></path>
+    </symbol>
+  </svg>
 
-  <main>
-    <section id="passcode" class="panel" hidden>
-      <h2>Sign in</h2>
-      <form id="passcode-form">
-        <label for="passcode-input">Passcode</label>
-        <div class="row">
-          <input id="passcode-input" type="password" autocomplete="current-password" required>
-          <button type="submit">Open</button>
-        </div>
-        <p id="passcode-error" class="error" role="alert"></p>
-      </form>
-    </section>
+  <section id="passcode" class="gate" hidden>
+    <form id="passcode-form" class="gate-card">
+      <div class="gate-head">
+        <svg width="72" height="72" aria-hidden="true"><use href="#logo"></use></svg>
+        <h1>Herding Cats</h1>
+        <p class="soft">Commitments from your documents, checked against the tasks that track them.</p>
+      </div>
+      <div class="field">
+        <label for="passcode-input">Team passcode</label>
+        <input id="passcode-input" type="password" autocomplete="current-password" required>
+      </div>
+      <button type="submit" class="btn primary">Continue</button>
+      <p id="passcode-error" class="alert" role="alert" hidden></p>
+    </form>
+    <p class="fine">Built on the Box Platform with Box AI · not an official Box product</p>
+  </section>
 
-    <div id="app" hidden>
-      <section id="status" class="panel" aria-live="polite"></section>
-      <section id="findings"></section>
-      <section id="set-aside" class="panel"></section>
-      <section id="audit" class="panel">
-        <div class="row spread">
-          <h2>Audit log</h2>
-          <label class="inline">Day <input id="audit-date" type="date"></label>
+  <div id="app" class="shell" hidden>
+    <header class="top">
+      <div class="wrap top-row">
+        <div class="brand">
+          <svg width="32" height="32" aria-hidden="true"><use href="#logo"></use></svg>
+          <span>Herding Cats</span>
         </div>
-        <pre id="audit-text" class="audit-text"></pre>
-      </section>
-      <section id="eval" class="panel" hidden>
-        <div class="row spread">
-          <h2>Eval</h2>
-          <button id="score-button" type="button">Score</button>
+        <span id="files-chip" class="chip"></span>
+        <span class="grow"></span>
+        <div class="segmented" role="group" aria-label="Mode">
+          <button id="mode-dry" type="button" aria-pressed="true">Dry run</button>
+          <button id="mode-apply" type="button" aria-pressed="false">Apply</button>
         </div>
-        <div id="eval-result"></div>
+        <button id="scan-button" type="button" class="btn primary">
+          <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9M13.5 2.5v3h-3" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+          <span id="scan-label">Scan now</span>
+        </button>
+      </div>
+      <nav class="wrap tabs" aria-label="Sections">
+        <a href="#findings" data-tab="findings">Findings</a>
+        <a href="#audit" data-tab="audit">Audit log</a>
+        <a href="#accuracy" data-tab="accuracy" hidden>Accuracy</a>
+      </nav>
+    </header>
+
+    <main class="wrap main">
+      <div id="tab-findings" class="stack">
+        <section id="status" class="status" aria-label="Status"></section>
+        <div id="progress" aria-live="polite"></div>
+        <div id="notice" aria-live="polite"></div>
+        <section class="stack-sm" aria-labelledby="types-title">
+          <div class="heading-row">
+            <h2 id="types-title">Findings by type <span aria-hidden="true">🐈</span></h2>
+            <span id="types-summary" class="soft"></span>
+          </div>
+          <div id="bucket-tiles" class="tiles"></div>
+        </section>
+        <div class="split">
+          <section id="finding-list" class="list" aria-label="Finding list"></section>
+          <article id="finding-detail" class="detail" aria-labelledby="detail-title"></article>
+        </div>
+      </div>
+
+      <section id="tab-audit" class="stack" hidden>
+        <div class="page-head">
+          <div class="stack-xs grow-wide">
+            <h1>Audit log <span aria-hidden="true">🐾</span></h1>
+            <p class="soft">Every change made or held, with its evidence. Saved daily to the Herding Cats Audit folder in Box.</p>
+          </div>
+          <div class="field">
+            <label for="audit-date">Day</label>
+            <input id="audit-date" type="date">
+          </div>
+        </div>
+        <pre id="audit-text" class="mono-block audit-text"></pre>
       </section>
-    </div>
-  </main>
+
+      <section id="tab-accuracy" class="stack" hidden>
+        <div class="page-head">
+          <div class="stack-xs grow-wide">
+            <h1>Accuracy <span aria-hidden="true">🎯</span></h1>
+            <p class="soft">Current results scored against the answer key. The key is stored outside Box, so Box AI never sees it.</p>
+          </div>
+          <button id="score-button" type="button" class="btn primary">Score now</button>
+        </div>
+        <div id="eval-result" class="stack"></div>
+      </section>
+    </main>
+
+    <footer class="foot">
+      <div class="wrap foot-row">
+        <span>Herding Cats · built on the Box Platform with Box AI · not an official Box product</span>
+        <span class="grow"></span>
+        <span>Every finding cites its source sentence · every write is in the audit log</span>
+      </div>
+    </footer>
+  </div>
+
+  <dialog id="apply-dialog" aria-labelledby="apply-title">
+    <form method="dialog" class="dialog-body">
+      <div class="stack-xs">
+        <span class="dialog-art" aria-hidden="true">🐈📦</span>
+        <h2 id="apply-title">Turn on apply mode?</h2>
+        <p class="soft">Herding Cats will write high-certainty fixes to Box automatically, as its service account. Everything else waits for review.</p>
+      </div>
+      <div class="two-up">
+        <div class="pane good">
+          <span class="eyebrow">Writes automatically</span>
+          <span>Tasks for commitments that aren't tracked, with owners and due dates</span>
+          <span>Comments on tasks that are cancelled but still open, or whose due date doesn't match</span>
+        </div>
+        <div class="pane warn">
+          <span class="eyebrow">Holds for review <span aria-hidden="true">👀</span></span>
+          <span>Tasks without a source, tasks on the wrong file, and owner mismatches on tasks Herding Cats didn't create, always</span>
+          <span>Anything with a failed check</span>
+        </div>
+      </div>
+      <div class="pane outline soft">
+        <span><strong>Never</strong> deletes, edits or completes anything that already exists in Box.</span>
+        <span><strong>Always</strong> writes an audit entry with the evidence behind each change.</span>
+      </div>
+      <p id="apply-ready" class="soft"></p>
+      <div class="actions end">
+        <button value="cancel" class="btn ghost">Stay in dry run</button>
+        <button value="apply" class="btn primary">Switch to apply</button>
+      </div>
+    </form>
+  </dialog>
+
   <script type="module" src="app.js"></script>
 </body>
 </html>

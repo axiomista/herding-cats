@@ -31,10 +31,15 @@ jobs:
       - id: ecr
         uses: aws-actions/amazon-ecr-login@v2
 
+      # Tags are immutable, so a re-run of a commit whose image is already pushed skips the push.
       - name: Build and push the image tagged with the commit SHA
         env:
           IMAGE: ${{ steps.ecr.outputs.registry }}/herding-cats:${{ github.sha }}
         run: |
+          if aws ecr describe-images --repository-name herding-cats --image-ids imageTag=${{ github.sha }} > /dev/null 2>&1; then
+            echo "image ${{ github.sha }} already in ECR; skipping build and push"
+            exit 0
+          fi
           docker build -t "$IMAGE" .
           docker push "$IMAGE"
 
@@ -46,7 +51,7 @@ jobs:
         working-directory: infra
         run: |
           terraform init -input=false -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}"
-          terraform apply -input=false -auto-approve -var "image_tag=${{ github.sha }}" -var "github_repo=${{ github.repository }}"
+          terraform apply -input=false -auto-approve -var "image_tag=${{ github.sha }}"
 
       - name: Wait for /healthz
         working-directory: infra
