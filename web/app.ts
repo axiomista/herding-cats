@@ -114,7 +114,7 @@ function renderStatus(s: AppState): void {
       stat(s.watching ? "Watching" : "Stopped", "watcher"),
       stat(s.mode === "apply" ? "Apply" : "Dry run", s.mode === "apply" ? "writes high-certainty fixes" : "writes nothing"),
       stat(last, "last cycle"),
-      stat(String(s.aiCallsThisMonth), "AI calls this month")),
+      stat(String(s.aiCallsThisMonth), "AI calls since start")),
     h("p", { id: "status-msg", class: "muted" }, notice),
     errors.length ? h("div", {}, h("b", {}, "Files that failed"), h("ul", { class: "plain" }, ...errors)) : "",
   );

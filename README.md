@@ -12,7 +12,7 @@ It flags:
 
 Every finding cites the sentence it came from. Certain fixes can be applied automatically; uncertain ones wait for a person; every change is recorded in an audit log in Box.
 
-> **Status:** Box AI hackathon project. The app runs end to end against a fake Box (`FAKE_BOX=1`); connecting it to live Box and AWS is next. See `PROGRESS.md` and `DECISIONS.md`.
+> **Status:** Box AI hackathon project. The app runs live on Box and on AWS (ECS Express Mode, dry run, behind a passcode), and end to end against a fake Box (`FAKE_BOX=1`) for local work. See `PROGRESS.md` and `DECISIONS.md`.
 
 ## How it works
 

@@ -18,6 +18,7 @@ None. The full design is built.
 | `BoxGateway.serviceUserId()`, `folderAncestors()` | `src/box.ts` | For ignoring the service account's own webhook events and for the audit-folder startup check. |
 | `src/score.ts` | | Scoring shared by the replay test, `npm run eval` and `POST /api/score`. |
 | `scripts/eval.ts`, `scripts/probe.ts` | | `npm run eval` (live, never run tonight) and the first-hour probes from the work breakdown. |
+| `scripts/reset.ts` | | Demo reset beside `seed_tasks.py --reset`: deletes the service account's "Herding Cats:" comments and the `hc*` metadata on the scan folder's files. Without it, the fingerprint check skips every comment on the next apply-mode run. Lists by default; `-- --yes` deletes. |
 | `scripts/copy-web.mjs` | | Copies `index.html` and `style.css` into `dist/web/` during `npm run build`. |
 | `web/mock-state.json` | | Work-breakdown contract: an `AppState` with a finding in every bucket, generated from a fake full scan. |
 
@@ -49,3 +50,4 @@ None. The full design is built.
 24. **Restatements that only the task connects.** Found on the first live eval: the model wrote the sync01 restatement as "book the Great Hall", which scores 59 against C01 (below the dedupe threshold) but 100 against T1. An unpaired open commitment whose best task scores 85 or more and is already paired with the same owner's commitment now becomes a mention of that commitment, not an untracked finding.
 25. **Untracked needs a clean miss.** An untracked finding is high certainty only if no task scored 60 or more; otherwise its pairing check fails and it is held. This keeps the audit line "no task scored above 60" true and stops a near-duplicate from becoming an automatic task.
 26. **Express 5** is what `npm install express` resolves to today; the spec names no version.
+27. **AI call count is per process.** The spec's status shows "AI calls this month", but the count lives in memory and resets on restart, and the spec rules out a store for it. The page labels it "AI calls since start"; Box's admin console has the monthly figure.

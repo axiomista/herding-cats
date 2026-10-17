@@ -1,13 +1,13 @@
 # Progress
 
-Overnight offline build on branch `overnight/build` (not pushed). Source of truth: `project-plan/herding-cats-spec.md`, built in the order of `project-plan/work-breakdown.md`. Deviations are in `DECISIONS.md`.
+Overnight offline build on branch `overnight/build`, now pushed: PR #1 is open and CI (`build`) passes on it. Source of truth: `project-plan/herding-cats-spec.md`, built in the order of `project-plan/work-breakdown.md`. Deviations are in `DECISIONS.md`.
 
 ## Done
 
 - **Step 0 contracts:** `src/types.ts`, `src/box.ts` (`BoxGateway` plus the real CCG gateway on `box-node-sdk` 4.18 `sdk-gen`; it typechecks and was never called), `src/config.ts`.
 - **A1 to A6 engine:** extract (prompt v1 with one retry on invalid JSON), verify, normalize, match, certainty, apply, `runCycle`; `src/trackers/box-tasks.ts`; `config/people.yaml`.
 - **Seed data and fixtures:** `seed/` holds the answer key, `seed_tasks.py` and the 7 seed docs. `test/fixtures/v1/` holds 7 hand-written fixtures: an invalid-JSON first reply (kickoff), paraphrased evidence (sync01), an idea mislabeled as a commitment (brainstorm), and "I" as an email owner.
-- **Tests:** 80 passing. Unit tests cover verify, normalize, match, certainty, audit (byte for byte against the spec's sample) and webhook signatures (valid primary, valid secondary, bad, stale). The replay test checks:
+- **Tests:** 86 passing. Unit tests cover verify, normalize, match, certainty, audit (byte for byte against the spec's sample) and webhook signatures (valid primary, valid secondary, bad, stale). The replay test checks:
   - recall 9/9, with C01 counted once;
   - 1 false positive;
   - T1 to T7 in their expected buckets;
@@ -53,23 +53,30 @@ Overnight offline build on branch `overnight/build` (not pushed). Source of trut
 
 ## First deploy notes (2026-10-17)
 
-- **Live:** `https://he-000852457d22485680a02826503b39ed.ecs.us-west-2.on.aws` (ECS Express, 1 task, dry run). `/healthz` 200, page 200, `/api/state` 401 without the passcode. The container reached Box at startup and its first sweep logged no errors.
+- **Live:** `https://he-000852457d22485680a02826503b39ed.ecs.us-west-2.on.aws` (ECS Express, 1 task, dry run). Deployed by hand, not yet through `deploy.yml`. `/healthz` 200, page 200, `/api/state` 401 without the passcode. The container reached Box at startup and its first sweep logged no errors.
 
-- Image `herding-cats:b5aa1c36b36e8f1309ab43208bc9bd5c0d74efcb` pushed to ECR (linux/amd64).
+- Image `herding-cats:b5aa1c36b36e8f1309ab43208bc9bd5c0d74efcb` pushed to ECR (linux/amd64). The running service predates the Terraform fixes in `c31c198`; the first pipeline deploy picks them up.
 - A fresh account creates ECS's service-linked roles on first use (`AWSServiceRoleForECS`, `AWSServiceRoleForElasticLoadBalancing`, `AWSServiceRoleForApplicationAutoScaling_ECSService`), and the first calls fail while the roles propagate. All three exist now, so later deploys are not affected.
 - The `herding-cats/env` secret must be key/value JSON with the exact key names; a malformed key name stopped every task ("did not contain json key BOX_CLIENT_ID"), and the circuit breaker failed the deployment.
 - The Express endpoint already includes `https://`; `service_url` now adds the scheme only if it is missing. Secret entries are sorted to match what ECS returns, so plans show no reordering diff.
 
+## Done after the review (2026-10-17, not committed)
+
+- `scripts/reset.ts` (new): the demo reset for comments and metadata; see Box step 4 below.
+- The page's AI stat now reads "AI calls since start": the count is in memory and resets on restart (DECISIONS #27).
+- README status says the app runs live on Box and AWS.
+
 ## Next: needs Box credentials
 
-1. Record live fixtures to a separate folder (for example `npm run eval -- --record` writing to `test/fixtures/v1-live/`), so the hand-written guard fixtures in `test/fixtures/v1/` are kept.
+1. Record live fixtures to a separate folder (for example `test/fixtures/v1-live/`), so the hand-written guard fixtures in `test/fixtures/v1/` are kept. `scripts/eval.ts` always writes to `test/fixtures/<prompt version>/` today, so it needs an output-directory option first; running `--record` now would overwrite the guard fixtures.
 2. Untested live: global/properties metadata writes, `extracted_text` on a non-text file, assigning to people by user ID through the app.
-3. Create the webhook on the scan folder (`FILE.UPLOADED`, `TASK_ASSIGNMENT.CREATED`, `TASK_ASSIGNMENT.UPDATED`) once the AWS URL exists, and put both signature keys in the secret.
-4. To reset the demo: `seed_tasks.py --reset`, then re-seed. Box rejects past due dates, so move T2, T4, T5 and T7's dates forward in the answer key if they matter.
+3. The webhook on the scan folder is created, but no event has been tested. Confirm both signature keys are in the secret and the task has restarted since, then check that an upload produces a finding in under a minute, a new version rescans only that file, and a task assignment queues its file.
+4. To reset the demo: `seed_tasks.py --reset` (deletes every task in the folder, including the app's), then `npx tsx scripts/reset.ts -- --yes` (deletes the app's comments and `hc*` metadata), then re-seed. Run `reset.ts` without `--yes` first to see what it would remove. Without it, the fingerprint check skips every comment on the next apply-mode run, so a rehearsal would leave the demo with no new comments. `reset.ts` typechecks but has not been run against live Box. Box rejects past due dates, so move T2, T4, T5 and T7's dates forward in the answer key if they matter.
 
 ## Next: needs AWS credentials
 
-1. In GitHub, create the `production` environment and the repository variables `AWS_DEPLOY_ROLE_ARN` (`arn:aws:iam::233436818035:role/herding-cats-deploy`) and `TF_STATE_BUCKET` (`herding-cats-tfstate-233436818035`). Then open the PR; merging deploys from `main`.
-2. Create the Box webhook pointing at `<service_url>/webhooks/box`, then put its two signature keys in the secret and redeploy.
-3. Narrow the deploy role's `ManageStack` permissions once the stack is stable.
-4. Point `AWS_PROFILE` (and the AWS MCP server) at the `herding-cats` IAM profile instead of root.
+1. Merge PR #1; merging deploys from `main`. The GitHub `production` environment and its variables `AWS_DEPLOY_ROLE_ARN` and `TF_STATE_BUCKET` are already set (as environment variables, which `deploy.yml` reads through `environment: production`).
+2. Run the gate checklist on AWS: a full scan from the live page in under 90 seconds, and Score under `?dev=1`. The live eval above ran from a laptop.
+3. Restart check: in dry run, scan markers live only in memory (DECISIONS #10), so a dry-run restart rescans every file. The 0-AI-call restart check holds only after apply mode has written markers to Box.
+4. Narrow the deploy role's `ManageStack` permissions once the stack is stable.
+5. Point `AWS_PROFILE` (and the AWS MCP server) at the `herding-cats` IAM profile instead of root.
