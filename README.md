@@ -1,6 +1,6 @@
 # 🐈‍⬛ Herding Cats 🐈
 
-Teams make promises in meetings and documents, then forget to put them on the to-do list. Herding Cats reads each document as it lands in a Box folder, lists every promise (who, what, by when, and the exact sentence), and checks it against the Box Tasks meant to track it.
+Teams make promises in meetings and documents, then forget to put them on the to-do list. Using sweeps and webhooks, Herding Cats reads each document as it lands in a Box folder, lists every promise (who, what, by when, and the exact sentence), and checks it against the Box Tasks meant to track it.
 
 It flags:
 
@@ -26,6 +26,8 @@ Every finding cites the sentence it came from. Certain fixes can be applied auto
 6. **Certainty** comes from the code's checks, not from the model's opinion of itself. In apply mode, high-certainty findings are written to Box; low-certainty ones wait for review.
 
 Box is the only data store: tasks, comments, file metadata and the audit log hold everything durable.
+
+<img width="2770" height="1558" alt="image" src="https://github.com/user-attachments/assets/faa96c0c-dc76-4050-8cee-9918b862919e" />
 
 ## Modes
 
