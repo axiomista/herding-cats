@@ -240,3 +240,93 @@ test("after a restart, a one-file webhook still supersedes T4 and misfiles T7", 
     assert.equal(findings.find((f) => f.commitment?.text === text)?.bucket, "matched", text);
   }
 });
+
+// Makes Box reject one file's metadata write (or read) until `fail` is cleared.
+function failMeta(box: FakeBox, op: "getMeta" | "setMeta", id: string) {
+  const real = box[op].bind(box);
+  const ctl = { fail: true };
+  box[op] = (async (fileId: string, values: Record<string, string>) => {
+    if (ctl.fail && fileId === id) throw new Error("Box 503");
+    return real(fileId, values);
+  }) as any;
+  return ctl;
+}
+
+test("a rejected metadata write for one file still finishes the cycle and is retried next cycle", async () => {
+  const { engine, box } = await fakeEngine({ mode: "apply" });
+  const id = fileId("handbook");
+  const ctl = failMeta(box, "setMeta", id);
+  await runCycle(engine, "all", { trigger: "full_scan", full: true });
+  assert.ok(engine.state.lastCycle, "the cycle finished");
+  assert.equal(writesOf(box, "setMeta").length, 6, "the other files still get metadata");
+  assert.deepEqual(engine.state.errors, [{ fileId: id, message: "metadata write: Box 503" }]);
+  assert.equal(engine.state.metaMarkers.has(id), false);
+
+  ctl.fail = false;
+  const before = box.writes.length;
+  await runCycle(engine, "all", { trigger: "sweep" });
+  const retried = box.writes.slice(before).filter((w) => w.op === "setMeta") as { fileId: string; values: Record<string, string> }[];
+  assert.deepEqual(retried.map((w) => w.fileId), [id]);
+  assert.ok(retried[0].values.hcExtract && retried[0].values.hcScannedVersion);
+  assert.deepEqual(engine.state.errors, []);
+});
+
+test("an unreadable metadata entry while hydrating other files is a per-file error", async () => {
+  const first = await fakeEngine({ mode: "apply" });
+  await runCycle(first.engine, "all", { trigger: "full_scan", full: true });
+  const { engine } = await fakeEngine({ mode: "dry-run" });
+  engine.gateway = first.box;
+  engine.tracker = first.box;
+  const id = fileId("handbook");
+  failMeta(first.box, "getMeta", id);
+  await runCycle(engine, [fileId("sync02")], { trigger: "webhook" });
+  assert.ok(engine.state.lastCycle, "the cycle finished");
+  assert.deepEqual(engine.state.errors, [{ fileId: id, message: "metadata read: Box 503" }]);
+  assert.ok(engine.state.files.has(fileId("kickoff")), "the other files are still restored");
+});
+
+test("switching to apply reports a rejected metadata write without throwing", async () => {
+  const { engine, box } = await fakeEngine({ mode: "dry-run" });
+  await runCycle(engine, "all", { trigger: "full_scan", full: true });
+  engine.state.errors = [{ fileId: "x", message: "scan failed" }];
+  engine.state.mode = "apply";
+  const id = fileId("email");
+  const ctl = failMeta(box, "setMeta", id);
+  const summary = await commitWrites(engine, "click");
+  assert.equal(summary.applied, 6);
+  assert.deepEqual(engine.state.errors, [{ fileId: "x", message: "scan failed" },
+    { fileId: id, message: "metadata write: Box 503" }], "the cycle's scan errors are kept");
+  ctl.fail = false;
+  await commitWrites(engine, "click");
+  assert.deepEqual(engine.state.errors, [{ fileId: "x", message: "scan failed" }], "a write that succeeds clears its error");
+});
+
+test("an unchanged version still gets a current open count, and nothing is written when nothing changed", async () => {
+  let now = new Date("2026-10-17T16:00:00Z");
+  const { engine, box } = await fakeEngine({ mode: "apply", now: () => now });
+  await runCycle(engine, "all", { trigger: "full_scan", full: true });
+  const quiet = box.writes.length;
+  await runCycle(engine, "all", { trigger: "sweep" });
+  assert.equal(writesOf(box, "setMeta").length, 7, "a sweep with nothing new writes no metadata");
+  assert.equal(box.writes.length, quiet);
+
+  // A dismissed finding lowers its file's open count without a new version.
+  const orphan = engine.state.findings.find((f) => f.bucket === "orphan")!;
+  const id = orphan.commitment?.fileId ?? orphan.task!.fileId;
+  const count = Number(box.meta.get(id)!.hcOpenFindings);
+  engine.state.dismissed.add(orphan.fingerprint);
+  now = new Date("2026-10-17T16:15:00Z");
+  await runCycle(engine, "all", { trigger: "sweep" });
+  const writes = box.writes.slice(quiet) as { op: string; fileId: string; values: Record<string, string> }[];
+  assert.deepEqual(writes.map((w) => [w.op, w.fileId]), [["setMeta", id]]);
+  assert.deepEqual(writes[0].values, { hcLastChecked: now.toISOString(), hcOpenFindings: String(count - 1), hcLastChange: "sweep" });
+  const meta = box.meta.get(id)!;
+  assert.ok(meta.hcExtract && meta.hcScannedVersion, "the partial write keeps the snapshot and marker");
+
+  // A full scan re-extracts the same versions, so each file's snapshot is written again.
+  const rescan = box.writes.length;
+  await runCycle(engine, "all", { trigger: "full_scan", full: true });
+  const full = box.writes.slice(rescan).filter((w) => w.op === "setMeta") as { values: Record<string, string> }[];
+  assert.equal(full.length, 7);
+  assert.ok(full.every((w) => w.values.hcExtract));
+});
