@@ -71,6 +71,8 @@ Overnight offline build on branch `overnight/build`, now pushed: PR #1 is open a
 
 - Box rejects past due dates, and by the demo most seed due dates had passed. Document dates moved 13 days and due dates 21 days (DECISIONS #28). Four seed files were renamed for their new dates; the answer key, the guard fixtures, the tests that read the seed docs and `web/mock-state.json` were updated to match. Fake-Box eval is unchanged: recall 9/9, 1 false positive (the brainstorm guard fixture), T1 to T7 correct.
 - **Box needs the new files.** In The Corporation, replace the four renamed files and the brainstorm and email files with the versions in `seed/docs/`, then `seed_tasks.py --reset`, `npx tsx scripts/reset.ts -- --yes`, and `seed_tasks.py`. Re-run the live dry-run eval afterwards (about 15 AI calls).
+- Done: the six files were uploaded as new versions of the same Box files (IDs kept, the four dated ones renamed; SHA-1 matches `seed/docs/`), `reset.ts` found nothing to remove, the tasks were reset and re-seeded with every due date.
+- Live dry-run eval after the re-seed: recall 9/9, 0 false positives, 6 of 7 tasks. T4 came out matched: the model labeled the box order's cancellation a decision, which the cycle set aside. Fixed (DECISIONS #29); the live re-run gives 7 of 7, with T4 superseded at low certainty (status match 83), so apply mode holds its comment for a click.
 
 ## Next: needs Box credentials
 

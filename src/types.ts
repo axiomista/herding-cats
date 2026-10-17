@@ -10,7 +10,8 @@ export interface Commitment { id: string; fileId: string; fileVersion: string; t
   flags?: string[];                                  // e.g. "owner unresolved", "date relative"
   dueAbsolute?: boolean;                             // due was written as an explicit date
   mentions?: { fileId: string; evidence: string }[]; // restatements merged into this commitment
-  statusEvidence?: { fileId: string; evidence: string }; // the sentence that cancelled or completed it
+  // The sentence that cancelled or completed it, and how well it matched this commitment.
+  statusEvidence?: { fileId: string; evidence: string; score?: number };
 }
 
 export interface TrackerTask { id: string; fileId: string; message: string;

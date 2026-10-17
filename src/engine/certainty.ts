@@ -13,6 +13,9 @@ export function certaintyChecks(f: Omit<Finding, "certainty" | "checks">, cfg: C
     checks.evidence = true;
     checks.owner = !!c.ownerUserId && !(c.flags ?? []).some((x) => x.startsWith("owner"));
     checks.dueDate = c.dueAbsolute !== false && !(c.flags ?? []).some((x) => x.startsWith("date"));
+    // A cancellation or completion that matched below the threshold waits for a person.
+    const statusScore = c.statusEvidence?.score;
+    if (c.status !== "open" && statusScore !== undefined) checks.status = statusScore >= cfg.matchThreshold;
   }
   if (c && f.task) {
     checks.pairing = (f.score ?? 0) >= cfg.highCertaintyScore && (f.score ?? 0) - (f.rivalScore ?? 0) >= cfg.rivalGap;

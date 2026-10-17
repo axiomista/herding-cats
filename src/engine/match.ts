@@ -34,25 +34,40 @@ export const findingId = (fp: string) => createHash("sha1").update(fp).digest("h
 
 const daysBetween = (a: string, b: string) => Math.abs(Date.parse(a) - Date.parse(b)) / 86_400_000;
 
-// Applies cancellations and completions to the commitments they refer to. A status change whose
-// commitment is not in memory becomes a commitment of its own, so it can still find the open
-// task created from another document.
+export const isClosing = (item: ExtractedItem) => item.newStatus === "cancelled" || item.newStatus === "completed";
+
+// How well a status change refers to a commitment. Both the commitment's short text and its
+// evidence sentence count: "The Human Acclimation Lab box order is cancelled." shares little
+// with "order 50 cardboard boxes" but most of the sentence that committed to it.
+function statusScore(sc: StatusChange, c: Commitment): number {
+  const refs = [sc.refersTo ?? sc.action, sc.evidence];
+  return Math.max(...refs.flatMap((r) => [similarity(r, c.text), similarity(r, c.evidence)]));
+}
+
+// Applies cancellations and completions to the commitments they refer to. A clear best match
+// below the match threshold still applies, if it beats every other commitment by the rival gap;
+// its certainty check then fails, so a person confirms it. A status change whose commitment is
+// not in memory becomes a commitment of its own, so it can still find the open task created
+// from another document.
 export function applyStatusChanges(commitments: Commitment[], changes: StatusChange[],
   cfg: Config["match"]): Commitment[] {
   const out = [...commitments];
   for (const sc of changes) {
-    if (sc.newStatus !== "cancelled" && sc.newStatus !== "completed") continue;
+    if (!isClosing(sc)) continue;
     const status = sc.newStatus === "cancelled" ? "cancelled" : "done";
     const ref = sc.refersTo ?? sc.action;
     let best: Commitment | undefined;
     let bestScore = -1;
+    let rival = 0;
     for (const c of out) {
-      const s = similarity(ref, c.text);
-      if (s > bestScore) { best = c; bestScore = s; }
+      const s = statusScore(sc, c);
+      if (s > bestScore) { rival = Math.max(rival, bestScore); best = c; bestScore = s; } else rival = Math.max(rival, s);
     }
-    if (best && bestScore >= cfg.matchThreshold) {
+    const clear = bestScore >= cfg.matchThreshold
+      || (bestScore >= cfg.possibleThreshold && bestScore - rival >= cfg.rivalGap);
+    if (best && clear) {
       best.status = status;
-      best.statusEvidence = { fileId: sc.fileId, evidence: sc.evidence };
+      best.statusEvidence = { fileId: sc.fileId, evidence: sc.evidence, score: bestScore };
     } else {
       out.push({
         id: `status:${sc.fileId}:${slug(ref)}`, fileId: sc.fileId, fileVersion: "", text: ref,

@@ -1,7 +1,9 @@
 // Replays a whole cycle over the 7 seed files with recorded AI answers and fails below the
 // spec's success criteria. Never calls Box or Box AI.
 import assert from "node:assert/strict";
-import { existsSync, readFileSync } from "node:fs";
+import { cpSync, existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { test } from "node:test";
 import { commitWrites, runCycle } from "../../src/engine/cycle.js";
 import { PROMPT_VERSION } from "../../src/engine/extract.js";
@@ -56,6 +58,32 @@ test("the guards fire: invalid JSON retried, paraphrase dropped, mislabel held b
   const c09 = state.findings.find((f) => f.commitment?.text === "Send the signed PO to Laser Dynamics");
   assert.equal(c09?.commitment?.owner, "Pixel", "'I' in the email resolves to its sender");
   assert.equal(c09?.commitment?.due, "2026-11-10");
+});
+
+// The live model's answer on 2026-10-17: the box order's cancellation labeled a decision, with
+// its new status but no refers_to.
+function decisionLabeledFixtures(): string {
+  const dir = mkdtempSync(join(tmpdir(), "hc-fixtures-"));
+  cpSync("test/fixtures/v1", dir, { recursive: true });
+  const path = join(dir, "sync02.json");
+  const fx = JSON.parse(readFileSync(path, "utf8"));
+  const items = JSON.parse(fx.extract[0].raw);
+  const cancel = items.find((i: { new_status: string | null }) => i.new_status === "cancelled");
+  Object.assign(cancel, { kind: "decision", action: "Cancel Human Acclimation Lab box order", refers_to: null });
+  fx.extract[0].raw = JSON.stringify(items, null, 2);
+  writeFileSync(path, JSON.stringify(fx, null, 2));
+  return dir;
+}
+
+test("a cancellation labeled a decision still supersedes T4, and apply mode holds it for a person", async () => {
+  const { engine, box } = await fakeEngine({ mode: "apply", fixturesDir: decisionLabeledFixtures() });
+  await runCycle(engine, "all", { trigger: "full_scan", full: true });
+  const t4 = engine.state.toAppState().findings.find((f) => f.task?.id === "seed-T4");
+  assert.equal(t4?.bucket, "superseded");
+  assert.equal(t4?.certainty, "low");
+  assert.equal(writesOf(box, "comment").filter((c: any) => c.text.includes("fingerprint: superseded|")).length, 0);
+  assert.ok(entries(box).some((e) => /HELD/.test(e) && /status match \d+ needs a person/.test(e)),
+    "the held entry says why");
 });
 
 test("apply mode makes exactly the high-certainty writes, audits each, and writes metadata last", async () => {
