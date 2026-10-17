@@ -46,6 +46,10 @@ Overnight offline build on branch `overnight/build` (not pushed). Source of trut
 - Terraform state bucket `herding-cats-tfstate-233436818035` (us-west-2): versioning on, SSE-S3, public access blocked, TLS-only policy.
 - `terraform init` against that bucket. First-pass plan: 15 resources (ECR, KMS key and alias, empty secret, log group, execution/task/infrastructure roles, GitHub OIDC provider, deploy role); no changes or destroys. Nothing in the plan exists in the account yet.
 - Confirmed the managed policy `AmazonECSInfrastructureRoleforExpressGatewayServices` exists (v6).
+- First-pass apply done: 15 added, 0 changed, 0 destroyed. Outputs:
+  - `deploy_role_arn`: `arn:aws:iam::233436818035:role/herding-cats-deploy`
+  - `ecr_repository_url`: `233436818035.dkr.ecr.us-west-2.amazonaws.com/herding-cats`
+  - `secret_arn`: `arn:aws:secretsmanager:us-west-2:233436818035:secret:herding-cats/env-Kyj8DE` (empty until set by hand)
 
 ## Next: needs Box credentials
 
@@ -56,10 +60,8 @@ Overnight offline build on branch `overnight/build` (not pushed). Source of trut
 
 ## Next: needs AWS credentials
 
-1. Apply the first pass. It's blocked from this session by the auto-mode permission check, so run it yourself:
-   `AWS_PROFILE=herding-cats terraform -chdir=infra apply` with the same 15 `-target` flags (see the planned resources above), or allow `terraform apply` in Claude Code's settings.
-2. Set the `herding-cats/env` secret's JSON values by hand in the console (every key in `.env.example`, with `MODE=dry-run`).
-3. Push the first image to ECR (tag = git SHA), then run the full apply to create the ECS Express service.
-4. Check on that apply: whether `ingress_paths[0].endpoint` already includes `https://` (the `service_url` output adds it), and that the container starts with the secret injected and `/healthz` answers.
-5. In GitHub, create the `production` environment and the repository variables `AWS_DEPLOY_ROLE_ARN` (from the `deploy_role_arn` output) and `TF_STATE_BUCKET` (`herding-cats-tfstate-233436818035`).
-6. Narrow the deploy role's `ManageStack` permissions once the stack is stable.
+1. Set the `herding-cats/env` secret's JSON values by hand in the console (every key in `.env.example`, with `MODE=dry-run`).
+2. Push the first image to ECR (tag = git SHA), then run the full apply to create the ECS Express service.
+3. Check on that apply: whether `ingress_paths[0].endpoint` already includes `https://` (the `service_url` output adds it), and that the container starts with the secret injected and `/healthz` answers.
+4. In GitHub, create the `production` environment and the repository variables `AWS_DEPLOY_ROLE_ARN` (from the `deploy_role_arn` output) and `TF_STATE_BUCKET` (`herding-cats-tfstate-233436818035`).
+5. Narrow the deploy role's `ManageStack` permissions once the stack is stable.
