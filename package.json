@@ -22,7 +22,7 @@
   },
   "description": "Finds promises made in Box documents that no Box Task tracks",
   "scripts": {
-    "dev": "tsc -p web && (tsc -w -p web --preserveWatchOutput & tsx watch src/server.ts)",
+    "dev": "tsc -p web && (tsc -w -p web --preserveWatchOutput & tsx watch --env-file=.env src/server.ts)",
     "build": "tsc -p tsconfig.build.json && tsc -p web && node scripts/copy-web.mjs",
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p web",
