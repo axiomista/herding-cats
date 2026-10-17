@@ -87,5 +87,5 @@ Overnight offline build on branch `overnight/build`, now pushed: PR #1 is open a
 1. Merge PR #1; merging deploys from `main`. The GitHub `production` environment and its variables `AWS_DEPLOY_ROLE_ARN` and `TF_STATE_BUCKET` are already set (as environment variables, which `deploy.yml` reads through `environment: production`).
 2. Run the gate checklist on AWS: a full scan from the live page in under 90 seconds, and Score under `?dev=1`. The live eval above ran from a laptop.
 3. Restart check: in dry run, scan markers live only in memory (DECISIONS #10), so a dry-run restart rescans every file. The 0-AI-call restart check holds only after apply mode has written markers to Box.
-4. Narrow the deploy role's `ManageStack` permissions once the stack is stable.
+4. The deploy role no longer has IAM write actions, so changes to roles or policies in `infra/iam.tf` must be applied by an admin (`--profile herding-cats`) before `deploy.yml` can apply. The first deploy after this change can still apply it, because the old policy allows it.
 5. Point `AWS_PROFILE` (and the AWS MCP server) at the `herding-cats` IAM profile instead of root.
