@@ -12,6 +12,7 @@ import { applyFinding } from "./engine/apply.js";
 import { CycleBusyError, CycleRunner, type Engine } from "./engine/cycle.js";
 import { loadPrompt } from "./engine/extract.js";
 import { loadPeople } from "./engine/normalize.js";
+import { PasscodeLimiter } from "./passcode-limit.js";
 import { score, type AnswerKey } from "./score.js";
 import { State } from "./state.js";
 import { BoxTasksTracker } from "./trackers/box-tasks.js";
@@ -46,9 +47,18 @@ export function createApp(engine: Engine, runner: CycleRunner, opts: { secureCoo
   app.use(express.json({ limit: "100kb" }));
   app.use(cookieParser(config.sessionSecret));
 
+  const limiter = new PasscodeLimiter();
   app.post("/api/session", (req, res) => {
+    const client = req.ip ?? "unknown";
+    const wait = limiter.retryAfter(client);
+    if (wait) { res.set("Retry-After", String(wait)).status(429).json({ error: "too many wrong passcodes; try again later" }); return; }
     const passcode = typeof req.body?.passcode === "string" ? req.body.passcode : "";
-    if (!sameText(passcode, config.demoPasscode)) { res.status(401).json({ error: "wrong passcode" }); return; }
+    if (!sameText(passcode, config.demoPasscode)) {
+      limiter.fail(client);
+      res.status(401).json({ error: "wrong passcode" });
+      return;
+    }
+    limiter.succeed(client);
     res.cookie(SESSION_COOKIE, String(Date.now() + SESSION_MS), {
       signed: true, httpOnly: true, sameSite: "lax", secure: opts.secureCookies, maxAge: SESSION_MS,
     });

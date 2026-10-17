@@ -7,7 +7,7 @@ Overnight offline build on branch `overnight/build`, now pushed: PR #1 is open a
 - **Step 0 contracts:** `src/types.ts`, `src/box.ts` (`BoxGateway` plus the real CCG gateway on `box-node-sdk` 4.18 `sdk-gen`; it typechecks and was never called), `src/config.ts`.
 - **A1 to A6 engine:** extract (prompt v1 with one retry on invalid JSON), verify, normalize, match, certainty, apply, `runCycle`; `src/trackers/box-tasks.ts`; `config/people.yaml`.
 - **Seed data and fixtures:** `seed/` holds the answer key, `seed_tasks.py` and the 7 seed docs. `test/fixtures/v1/` holds 7 hand-written fixtures: an invalid-JSON first reply (kickoff), paraphrased evidence (sync01), an idea mislabeled as a commitment (brainstorm), and "I" as an email owner.
-- **Tests:** 86 passing. Unit tests cover verify, normalize, match, certainty, audit (byte for byte against the spec's sample) and webhook signatures (valid primary, valid secondary, bad, stale). The replay test checks:
+- **Tests:** 88 passing. Unit tests cover verify, normalize, match, certainty, audit (byte for byte against the spec's sample) and webhook signatures (valid primary, valid secondary, bad, stale). The replay test checks:
   - recall 9/9, with C01 counted once;
   - 1 false positive;
   - T1 to T7 in their expected buckets;
@@ -53,7 +53,7 @@ Overnight offline build on branch `overnight/build`, now pushed: PR #1 is open a
 
 ## First deploy notes (2026-10-17)
 
-- **Live:** `https://he-000852457d22485680a02826503b39ed.ecs.us-west-2.on.aws` (ECS Express, 1 task, dry run). Deployed by hand, not yet through `deploy.yml`. `/healthz` 200, page 200, `/api/state` 401 without the passcode. The container reached Box at startup and its first sweep logged no errors.
+- **Live:** the URL is the `service_url` Terraform output (ECS Express, 1 task, dry run); it is kept out of the repo. Deployed by hand, not yet through `deploy.yml`. `/healthz` 200, page 200, `/api/state` 401 without the passcode. The container reached Box at startup and its first sweep logged no errors.
 
 - Image `herding-cats:b5aa1c36b36e8f1309ab43208bc9bd5c0d74efcb` pushed to ECR (linux/amd64). The running service predates the Terraform fixes in `c31c198`; the first pipeline deploy picks them up.
 - A fresh account creates ECS's service-linked roles on first use (`AWSServiceRoleForECS`, `AWSServiceRoleForElasticLoadBalancing`, `AWSServiceRoleForApplicationAutoScaling_ECSService`), and the first calls fail while the roles propagate. All three exist now, so later deploys are not affected.
@@ -65,6 +65,7 @@ Overnight offline build on branch `overnight/build`, now pushed: PR #1 is open a
 - `scripts/reset.ts` (new): the demo reset for comments and metadata; see Box step 4 below.
 - The page's AI stat now reads "AI calls since start": the count is in memory and resets on restart (DECISIONS #27).
 - README status says the app runs live on Box and AWS.
+- Public-repo hardening: wrong passcodes are limited to 10 per IP per 15 minutes (429 after that); personal email addresses are gone from the repo and its history; the live URL is no longer in this file. Still to do by hand: set a long random `DEMO_PASSCODE` in the secret and redeploy.
 
 ## Next: needs Box credentials
 

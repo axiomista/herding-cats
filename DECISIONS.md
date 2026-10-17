@@ -18,6 +18,7 @@ None. The full design is built.
 | `BoxGateway.serviceUserId()`, `folderAncestors()` | `src/box.ts` | For ignoring the service account's own webhook events and for the audit-folder startup check. |
 | `src/score.ts` | | Scoring shared by the replay test, `npm run eval` and `POST /api/score`. |
 | `scripts/eval.ts`, `scripts/probe.ts` | | `npm run eval` (live, never run tonight) and the first-hour probes from the work breakdown. |
+| Passcode attempt limit | `src/passcode-limit.ts`, `src/server.ts` | The repo is public, so the live URL can be found. After 10 wrong passcodes in 15 minutes from one IP, `POST /api/session` answers 429 with `Retry-After`; a correct passcode clears that IP's count. In memory, like the rest of the working state. |
 | `scripts/reset.ts` | | Demo reset beside `seed_tasks.py --reset`: deletes the service account's "Herding Cats:" comments and the `hc*` metadata on the scan folder's files. Without it, the fingerprint check skips every comment on the next apply-mode run. Lists by default; `-- --yes` deletes. |
 | `scripts/copy-web.mjs` | | Copies `index.html` and `style.css` into `dist/web/` during `npm run build`. |
 | `web/mock-state.json` | | Work-breakdown contract: an `AppState` with a finding in every bucket, generated from a fake full scan. |

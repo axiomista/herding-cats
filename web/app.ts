@@ -227,7 +227,8 @@ function pacificToday(): string {
 $("passcode-form").addEventListener("submit", async (e) => {
   e.preventDefault();
   const res = await post("/api/session", { passcode: ($("passcode-input") as HTMLInputElement).value });
-  $("passcode-error").textContent = res.ok ? "" : "That passcode did not work.";
+  $("passcode-error").textContent = res.ok ? ""
+    : res.status === 429 ? "Too many wrong passcodes. Try again in a few minutes." : "That passcode did not work.";
   if (res.ok) { await refresh(); await loadAudit(); }
 });
 ($("audit-date") as HTMLInputElement).value = pacificToday();
