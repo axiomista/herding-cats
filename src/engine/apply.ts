@@ -90,6 +90,7 @@ export async function applyFinding(ctx: WriteContext, f: Finding, trigger: Trigg
       const task = await ctx.tracker.createTask(p.fileId, p.message, p.assigneeId, p.due) as
         { id: string; assignError?: string; dueError?: string; assigneeIds: string[] };
       wrote = true;
+      ctx.state.createdTasks.add(task.id);
       const who = task.assigneeIds.length ? `assigned to ${p.assigneeName ?? userName(ctx.people, p.assigneeId!)}` : "unassigned";
       change = `task ${task.id} created on "${fileName(ctx.state, p.fileId)}", ${who}`;
       if (task.dueError) change += `, without due date ${p.due} (Box: ${task.dueError})`;

@@ -86,9 +86,9 @@
         "owner": true,
         "dueDate": true,
         "pairing": true,
-        "bucket": true
+        "bucket": false
       },
-      "certainty": "high",
+      "certainty": "low",
       "proposal": {
         "kind": "comment",
         "fileId": "2532582052240",
