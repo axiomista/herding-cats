@@ -7,6 +7,9 @@ import type { TrackerAdapter, TrackerTask } from "../types.js";
 // A due date is stored as 5pm Pacific on that day, as seed_tasks.py does.
 export const dueAtFor = (date: string) => `${date}T17:00:00-07:00`;
 
+// Box's maximum page size for a file's comments.
+const COMMENT_PAGE_LIMIT = 1000;
+
 export function pacificDate(iso: string): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles" }).format(new Date(iso));
 }
@@ -73,9 +76,17 @@ export class BoxTasksTracker implements TrackerAdapter {
     return created.id ?? "";
   }
 
+  // Box pages comments oldest first, so our fingerprint is often past the first page.
   async hasComment(fileId: string, fingerprint: string): Promise<boolean> {
-    const comments = await this.client.comments.getFileComments(fileId, { queryParams: { fields: ["message"] } });
-    return (comments.entries ?? []).some((c) => commentCarriesFingerprint(c.message ?? "", fingerprint));
+    for (let offset = 0; ;) {
+      const page = await this.client.comments.getFileComments(fileId,
+        { queryParams: { fields: ["message"], limit: COMMENT_PAGE_LIMIT, offset } });
+      const entries = page.entries ?? [];
+      if (entries.some((c) => commentCarriesFingerprint(c.message ?? "", fingerprint))) return true;
+      offset += entries.length;
+      // An empty page ends the walk even if totalCount is missing or wrong.
+      if (entries.length === 0 || offset >= (page.totalCount ?? Infinity)) return false;
+    }
   }
 }
 
