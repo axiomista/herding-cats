@@ -1,0 +1,24 @@
+{
+  "promptVersion": "v1",
+  "file": {
+    "id": "2533251553767",
+    "name": "2026-10-16 URGENT - Directive from the COO.md",
+    "version": "1"
+  },
+  "classify": {
+    "docType": "memo",
+    "docDate": "2026-10-16",
+    "author": "Tuxedo Meowtani",
+    "model": "hand-written fixture (prompt v1)"
+  },
+  "extract": [
+    {
+      "raw": "{\"kind\": \"commitment\", \"action\": \"achieve world domination\", \"owner\": \"Everyone\", \"due\": \"Friday\", \"evidence\": \"Everyone will achieve world domination by Friday.\"}",
+      "model": "live Box AI answer on 2026-10-17 (prompt v1)"
+    },
+    {
+      "raw": "{\"kind\": \"commitment\", \"action\": \"achieve world domination\", \"owner\": \"Everyone\", \"due\": \"Friday\", \"evidence\": \"Everyone will achieve world domination by Friday.\"}",
+      "model": "assumed same as the first answer"
+    }
+  ]
+}
