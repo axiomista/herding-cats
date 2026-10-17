@@ -53,6 +53,8 @@ Overnight offline build on branch `overnight/build` (not pushed). Source of trut
 
 ## First deploy notes (2026-10-17)
 
+- **Live:** `https://he-000852457d22485680a02826503b39ed.ecs.us-west-2.on.aws` (ECS Express, 1 task, dry run). `/healthz` 200, page 200, `/api/state` 401 without the passcode. The container reached Box at startup and its first sweep logged no errors.
+
 - Image `herding-cats:b5aa1c36b36e8f1309ab43208bc9bd5c0d74efcb` pushed to ECR (linux/amd64).
 - A fresh account creates ECS's service-linked roles on first use (`AWSServiceRoleForECS`, `AWSServiceRoleForElasticLoadBalancing`, `AWSServiceRoleForApplicationAutoScaling_ECSService`), and the first calls fail while the roles propagate. All three exist now, so later deploys are not affected.
 - The `herding-cats/env` secret must be key/value JSON with the exact key names; a malformed key name stopped every task ("did not contain json key BOX_CLIENT_ID"), and the circuit breaker failed the deployment.
@@ -67,8 +69,7 @@ Overnight offline build on branch `overnight/build` (not pushed). Source of trut
 
 ## Next: needs AWS credentials
 
-1. Set the `herding-cats/env` secret's JSON values by hand in the console (every key in `.env.example`, with `MODE=dry-run`).
-2. Push the first image to ECR (tag = git SHA), then run the full apply to create the ECS Express service.
-3. Check on that apply: whether `ingress_paths[0].endpoint` already includes `https://` (the `service_url` output adds it), and that the container starts with the secret injected and `/healthz` answers.
-4. In GitHub, create the `production` environment and the repository variables `AWS_DEPLOY_ROLE_ARN` (from the `deploy_role_arn` output) and `TF_STATE_BUCKET` (`herding-cats-tfstate-233436818035`).
-5. Narrow the deploy role's `ManageStack` permissions once the stack is stable.
+1. In GitHub, create the `production` environment and the repository variables `AWS_DEPLOY_ROLE_ARN` (`arn:aws:iam::233436818035:role/herding-cats-deploy`) and `TF_STATE_BUCKET` (`herding-cats-tfstate-233436818035`). Then open the PR; merging deploys from `main`.
+2. Create the Box webhook pointing at `<service_url>/webhooks/box`, then put its two signature keys in the secret and redeploy.
+3. Narrow the deploy role's `ManageStack` permissions once the stack is stable.
+4. Point `AWS_PROFILE` (and the AWS MCP server) at the `herding-cats` IAM profile instead of root.
