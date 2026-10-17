@@ -1,5 +1,5 @@
 {
-  "promptVersion": "v1",
+  "promptVersion": "v2",
   "file": {
     "id": "2532575022411",
     "name": "2026-10-05 Memo - FY27 Treat Budget.md",
@@ -9,12 +9,12 @@
     "docType": "memo",
     "docDate": "2026-10-05",
     "author": "Tuxedo Meowtani",
-    "model": "hand-written fixture (prompt v1)"
+    "model": "hand-written fixture (prompt v2)"
   },
   "extract": [
     {
       "raw": "[\n  {\n    \"kind\": \"decision\",\n    \"action\": \"Approve the FY27 treat budget at 85% of the request\",\n    \"owner\": null,\n    \"due\": null,\n    \"refers_to\": null,\n    \"new_status\": null,\n    \"evidence\": \"The request is conditionally approved at 85% of the requested amount.\"\n  },\n  {\n    \"kind\": \"commitment\",\n    \"action\": \"Submit a revised R&D treat budget\",\n    \"owner\": \"Sir Reginald Biscuits\",\n    \"due\": \"November 2\",\n    \"refers_to\": null,\n    \"new_status\": null,\n    \"evidence\": \"Sir Reginald Biscuits will submit a revised R&D treat budget, reflecting the 85% allocation and the salmon-to-granola substitution, by November 2.\"\n  },\n  {\n    \"kind\": \"decision\",\n    \"action\": \"Keep catnip out of treat budgets\",\n    \"owner\": null,\n    \"due\": null,\n    \"refers_to\": null,\n    \"new_status\": null,\n    \"evidence\": \"Treat budgets may not be spent on catnip.\"\n  }\n]",
-      "model": "hand-written fixture (prompt v1)"
+      "model": "hand-written fixture (prompt v2)"
     }
   ]
 }

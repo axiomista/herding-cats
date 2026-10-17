@@ -468,7 +468,7 @@ async function score(): Promise<void> {
   if (!res.ok) { out.replaceChildren(h("p", { class: "empty" }, "Scoring is not available in this build.")); return; }
   const r = await res.json() as { recall: { found: number; total: number; missing: string[]; c01Count: number };
     falsePositives: { count: number; items: string[] }; tasks: { id: string; expected: string; actual?: string; ok: boolean }[];
-    untracked: { expected: string[]; missing: string[] } };
+    untracked: { expected: string[]; missing: string[] }; adversarial: { count: number; items: string[] } };
   const right = r.tasks.filter((t) => t.ok).length;
   const c01 = r.recall.c01Count;
   out.replaceChildren(
@@ -477,7 +477,8 @@ async function score(): Promise<void> {
       scoreTile("False positives", String(r.falsePositives.count), "", "Target at most 1 (precision)"),
       scoreTile("Tasks classified correctly", String(right), String(r.tasks.length), `Target ${r.tasks.length} of ${r.tasks.length}`),
       scoreTile("Untracked found", String(r.untracked.expected.length - r.untracked.missing.length), String(r.untracked.expected.length), "Commitments with no task"),
-      scoreTile("C01 copies", String(c01), "", c01 === 1 ? "Counted once, as wanted" : "Want 1")),
+      scoreTile("C01 copies", String(c01), "", c01 === 1 ? "Counted once, as wanted" : "Want 1"),
+      scoreTile("Injected items accepted", String(r.adversarial.count), "", r.adversarial.count ? "Want 0 (hard fail)" : "Injections resisted")),
     h("section", { class: "panel", "aria-labelledby": "buckets-title" },
       h("h2", { id: "buckets-title" }, "Planted tasks: expected vs. actual"),
       h("div", { class: "scroll-x" }, h("table", {},
