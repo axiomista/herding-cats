@@ -112,6 +112,21 @@ export class FakeBox implements BoxGateway, TrackerAdapter {
     return { ...this.fixture(fileId).classify };
   }
 
+  asks: { fileIds: string[]; prompt: string }[] = [];
+
+  // Cites the finding's evidence quote when one of the files contains it, like Box AI would.
+  async ask(fileIds: string[], prompt: string) {
+    await this.ai();
+    this.asks.push({ fileIds, prompt });
+    const quote = /^Evidence: "(.*)" \(from /m.exec(prompt)?.[1];
+    const source = quote ? fileIds.find((id) => this.texts.get(id)?.includes(quote)) : undefined;
+    return {
+      answer: source ? "The documents support this finding." : "The documents don't say.",
+      model: "fake Box AI",
+      citations: source && quote ? [{ fileId: source, name: this.fixtures.get(source)?.file.name, content: quote }] : [],
+    };
+  }
+
   async extract(fileId: string, prompt: string) {
     await this.ai();
     const answers = this.fixture(fileId).extract;

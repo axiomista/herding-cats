@@ -10,6 +10,8 @@ type Proposal =
   | { kind: "comment"; fileId: string; text: string };
 interface Finding { id: string; bucket: Bucket; certainty: "high" | "low"; checks: Record<string, boolean>;
   commitment?: Commitment; task?: TrackerTask; score?: number; fingerprint: string; proposal?: Proposal }
+interface AskAnswer { answer: string; model: string; at: string; fileIds: string[];
+  citations: { fileId: string; name?: string; content: string }[] }
 interface ExtractedItem { kind: string; action: string; owner?: string; evidence: string; fileId?: string; newStatus?: string }
 interface AppState {
   mode: "dry-run" | "apply"; watching: boolean;
@@ -18,6 +20,7 @@ interface AppState {
   findings: Finding[]; setAside: ExtractedItem[];
   files?: Record<string, { name: string }>; errors?: { fileId: string; message: string }[];
   unverified?: ExtractedItem[];
+  asks?: Record<string, AskAnswer>;
 }
 
 const BUCKETS: { key: Bucket; title: string; blurb: string }[] = [
@@ -39,6 +42,8 @@ const dev = new URLSearchParams(location.search).has("dev");
 let state: AppState | undefined;
 let pollTimer: number | undefined;
 let notice = ""; // the last action's result, kept across re-renders
+const asking = new Set<string>(); // fingerprints with a Box AI question in flight
+const askErrors = new Map<string, string>();
 
 type Child = Node | string | undefined | false;
 function h(tag: string, attrs: Record<string, string> = {}, ...children: Child[]): HTMLElement {
@@ -165,6 +170,9 @@ function card(f: Finding): HTMLElement {
       : `Comment on "${fileName(p.fileId)}":\n${p.text}`;
     body.push(h("div", { class: "muted" }, "This is exactly what will be sent:"), h("pre", { class: "proposal" }, preview));
   }
+  const ask = state?.asks?.[f.fingerprint];
+  if (ask) body.push(askBlock(ask));
+  else if (askErrors.has(f.fingerprint)) body.push(h("p", { class: "muted" }, askErrors.get(f.fingerprint)!));
   const actions = h("div", { class: "row" });
   const send = async (action: string) => {
     const res = await post(`/api/findings/${encodeURIComponent(f.id)}/actions`, { action });
@@ -175,8 +183,40 @@ function card(f: Finding): HTMLElement {
   if (f.proposal?.kind === "task") actions.append(button("Create task", () => send("create_task")));
   if (f.proposal?.kind === "comment") actions.append(button("Post comment", () => send("comment")));
   if (f.bucket !== "matched") actions.append(button("Dismiss", () => send("dismiss"), "secondary"));
+  if (!ask) {
+    const b = button(asking.has(f.fingerprint) ? "Asking Box AI…" : "Ask Box AI", () => askBoxAi(f), "secondary") as HTMLButtonElement;
+    b.disabled = asking.has(f.fingerprint);
+    actions.append(b);
+  }
   body.push(actions);
   return h("article", { class: `card ${f.certainty}` }, ...body);
+}
+
+// Box AI's second opinion. It is shown apart from the checks because certainty never uses it.
+function askBlock(a: AskAnswer): HTMLElement {
+  const read = a.fileIds.length === 1 ? fileName(a.fileIds[0]) : `${a.fileIds.length} files`;
+  return h("div", { class: "ask" },
+    h("div", { class: "muted" }, `Box AI's view, after reading ${read}. Advisory: certainty comes from the checks above.`),
+    h("p", {}, a.answer),
+    ...a.citations.slice(0, 3).map((c) => quote(c.content, c.fileId)));
+}
+
+async function askBoxAi(f: Finding): Promise<void> {
+  asking.add(f.fingerprint);
+  askErrors.delete(f.fingerprint);
+  render();
+  try {
+    const res = await post(`/api/findings/${encodeURIComponent(f.id)}/ask`);
+    if (!res.ok) {
+      const out = await res.json().catch(() => ({})) as { error?: string };
+      askErrors.set(f.fingerprint, out.error ?? "Box AI could not answer.");
+    }
+  } catch {
+    askErrors.set(f.fingerprint, "Box AI could not answer.");
+  } finally {
+    asking.delete(f.fingerprint);
+  }
+  await refresh();
 }
 
 function button(label: string, onClick: () => void, cls = ""): HTMLElement {

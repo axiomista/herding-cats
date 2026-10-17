@@ -54,6 +54,7 @@ if (record) {
     readAudit: (d) => real.readAudit(d),
     serviceUserId: () => real.serviceUserId(),
     folderAncestors: (id) => real.folderAncestors(id),
+    ask: (ids, prompt) => real.ask(ids, prompt),
     classify: async (id) => { const r = await real.classify(id); fixture(id).classify = r; return r; },
     extract: async (id, prompt) => { const r = await real.extract(id, prompt); fixture(id).extract.push(r); return r; },
   };

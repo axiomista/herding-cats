@@ -52,6 +52,10 @@ export interface AuditEntry { time: string; trigger: Trigger;
   evidence: { quote: string; fileId: string; fileVersion: string };
   model: string; matchScore?: number; outcome: string; }
 
+// (new) Box AI's answer to "Ask Box AI" on one finding. Advisory only: certainty never reads it.
+export interface AskAnswer { question: string; answer: string; model: string; at: string;
+  fileIds: string[]; citations: { fileId: string; name?: string; content: string }[] }
+
 // (new) The GET /api/state response.
 export interface AppState { mode: "dry-run" | "apply"; watching: boolean;
   lastCycle?: { at: string; trigger: AuditEntry["trigger"]; filesChecked: number };
@@ -60,6 +64,7 @@ export interface AppState { mode: "dry-run" | "apply"; watching: boolean;
   files?: Record<string, { name: string }>;           // (new) names for card links
   errors?: { fileId: string; message: string }[];      // (new) files the last cycle could not process
   unverified?: (ExtractedItem & { fileId: string })[]; // (new) items dropped by the evidence check
+  asks?: Record<string, AskAnswer>;                    // (new) Box AI answers, by finding fingerprint
 }
 
 export interface BoxFile { id: string; name: string; version: string; size: number }

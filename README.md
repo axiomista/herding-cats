@@ -22,6 +22,7 @@ Every finding cites the sentence it came from. Certain fixes can be applied auto
 4. Owners are mapped to Box users through `config/people.yaml`, and dates are resolved against the document date.
 5. Commitments are **matched** against every task in the folder with fuzzy text similarity, then sorted into buckets.
 6. **Certainty** comes from the code's checks, not from the model's opinion of itself. In apply mode, high-certainty findings are written to Box; low-certainty ones wait for review.
+7. On any finding, **Ask Box AI** gets a cited second opinion from Box AI Ask over the files behind it. It is advisory: it writes nothing and never changes certainty.
 
 Box is the only data store: tasks, comments, file metadata and the audit log hold everything durable.
 

@@ -9,6 +9,7 @@ import { AuditLog } from "./audit.js";
 import { createBoxClient, RealBoxGateway } from "./box.js";
 import { assertAuditOutsideScan, type Config, loadConfig } from "./config.js";
 import { applyFinding } from "./engine/apply.js";
+import { askAboutFinding } from "./engine/ask.js";
 import { commitWrites, CycleBusyError, CycleRunner, type Engine } from "./engine/cycle.js";
 import { loadPrompt } from "./engine/extract.js";
 import { loadPeople } from "./engine/normalize.js";
@@ -107,6 +108,19 @@ export function createApp(engine: Engine, runner: CycleRunner, opts: { secureCoo
     } catch (err) {
       if (err instanceof CycleBusyError) { res.status(409).json({ error: err.message }); return; }
       throw err;
+    }
+  });
+
+  // (new) "Ask Box AI": a read-only second opinion on one finding. It writes nothing to Box, so it
+  // needs no audit entry, and the answer is kept per finding so asking again is free.
+  app.post("/api/findings/:id/ask", session, async (req, res) => {
+    const finding = state.findings.find((f) => f.id === req.params.id);
+    if (!finding) { res.status(404).json({ error: "no such finding" }); return; }
+    try {
+      res.json(await askAboutFinding(engine, finding));
+    } catch (err) {
+      console.error(err);
+      res.status(502).json({ error: `Box AI could not answer: ${err instanceof Error ? err.message : String(err)}` });
     }
   });
 

@@ -18,7 +18,12 @@ export interface BoxGateway {
   serviceUserId(): Promise<string>;
   // (new) A folder's ancestors from the root, for the audit-folder startup check.
   folderAncestors(folderId: string): Promise<string[]>;
+  // (new) Box AI Ask over up to 25 files, with citations. Used only by "Ask Box AI" on a finding.
+  ask(fileIds: string[], prompt: string): Promise<AskResult>;
 }
+
+export type AskResult = { answer: string; model: string; citations: { fileId: string; name?: string; content: string }[] };
+export const ASK_MAX_FILES = 25;
 
 export const DOC_TYPES = ["meeting notes", "memo", "email thread", "brainstorm", "policy", "spec", "other"];
 
@@ -138,6 +143,23 @@ export class RealBoxGateway implements BoxGateway {
   async extract(fileId: string, prompt: string) {
     const res = await this.client.ai.createAiExtract({ prompt, items: [{ id: fileId, type: "file" }] });
     return { raw: res.answer, model: modelName(res.aiAgentInfo) };
+  }
+
+  async ask(fileIds: string[], prompt: string): Promise<AskResult> {
+    const ids = fileIds.slice(0, ASK_MAX_FILES);
+    const res = await this.client.ai.createAiAsk({
+      mode: ids.length > 1 ? "multiple_item_qa" : "single_item_qa",
+      prompt,
+      items: ids.map((id) => ({ id, type: "file" as const })),
+      includeCitations: true,
+    });
+    if (!res) throw new Error("Box AI returned no answer");
+    return {
+      answer: res.answer,
+      model: modelName(res.aiAgentInfo),
+      citations: (res.citations ?? []).filter((c) => c.content && c.id)
+        .map((c) => ({ fileId: c.id!, name: c.name, content: c.content! })),
+    };
   }
 
   async getMeta(fileId: string): Promise<Record<string, string>> {

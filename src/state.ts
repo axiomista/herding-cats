@@ -1,5 +1,5 @@
 // In-memory working state: findings, review queue, progress. Rebuilt by a full scan after a restart.
-import type { AppState, Commitment, ExtractedItem, Finding, Trigger } from "./types.js";
+import type { AppState, AskAnswer, Commitment, ExtractedItem, Finding, Trigger } from "./types.js";
 import type { StatusChange } from "./engine/match.js";
 
 export interface FileResult {
@@ -26,6 +26,8 @@ export class State {
   dismissed = new Set<string>();             // fingerprints a person dismissed
   heldLogged = new Set<string>();            // fingerprints already logged as HELD
   writing = new Set<string>();               // fingerprints whose write is in flight
+  asks = new Map<string, AskAnswer>();       // Box AI answers, by finding fingerprint
+  asking = new Map<string, Promise<AskAnswer>>(); // questions in flight, so a double click asks once
 
   constructor(mode: AppState["mode"]) { this.mode = mode; }
 
@@ -63,6 +65,8 @@ export class State {
       files: Object.fromEntries([...this.names].map(([id, name]) => [id, { name }])),
       errors: this.errors,
       unverified: results.flatMap((r) => r.unverified),
+      asks: Object.fromEntries(this.findings.filter((f) => this.asks.has(f.fingerprint))
+        .map((f) => [f.fingerprint, this.asks.get(f.fingerprint)!])),
     };
   }
 }
