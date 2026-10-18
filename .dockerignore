@@ -10,3 +10,4 @@ seed/docs
 .env.*
 *.log
 .DS_Store
+seed/formats

@@ -1,21 +1,23 @@
 # Names in documents -> Box user IDs. Every person named in the seed documents is listed.
 # `user` refers to a key under `users`. People with no `user` are flagged when they own a
-# commitment; `external: true` marks people outside the organization.
+# commitment; `external: true` marks people outside the organization. The katakana and "TUX"
+# aliases are for the format test corpus (seed/formats/); タマ支社長 there is unmapped on purpose.
 users:
   vanessa: "53096399974"              # owner of The Corporation
   zaq: "53093111490"                  # Editor on The Corporation
 
 people:
   - name: Sir Reginald Biscuits
-    aliases: [Biscuits, Sir Reginald, Reginald Biscuits]
+    aliases: [Biscuits, Sir Reginald, Reginald Biscuits, ビスケッツ卿]
     user: vanessa
   - name: Dale Henderson
     aliases: [Dale]
     user: vanessa
   - name: Tuxedo Meowtani
-    aliases: [Tuxedo]
+    aliases: [Tuxedo, TUX, タキシード, タキシード・ニャウタニ]
     user: zaq
   - name: Pixel
+    aliases: [ピクセル]
     user: zaq
   - name: Chairmeow Baroness Nyanland
     aliases: [Chairmeow, Baroness Nyanland, The Chairmeow]
