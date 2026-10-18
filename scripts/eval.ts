@@ -68,7 +68,7 @@ if (statePath) writeFileSync(statePath, `${JSON.stringify(engine.state.toAppStat
 if (record) {
   const dir = record;
   mkdirSync(dir, { recursive: true });
-  const keyByName = new Map(Object.entries((key as unknown as { files: Record<string, string> }).files).map(([k, n]) => [n, k]));
+  const keyByName = new Map(Object.entries({ ...key.files, ...key.formats?.files }).map(([k, n]) => [n, k]));
   for (const fx of recorded.values()) {
     const name = keyByName.get(fx.file.name) ?? fx.file.id;
     writeFileSync(`${dir}/${name}.json`, `${JSON.stringify(fx, null, 2)}\n`);

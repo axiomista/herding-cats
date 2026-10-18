@@ -75,6 +75,10 @@ Overnight offline build on branch `overnight/build`, now pushed: PR #1 is open a
 - Done: the six files were uploaded as new versions of the same Box files (IDs kept, the four dated ones renamed; SHA-1 matches `seed/docs/`), `reset.ts` found nothing to remove, the tasks were reset and re-seeded with every due date.
 - Live dry-run eval after the re-seed: recall 9/9, 0 false positives, 6 of 7 tasks. T4 came out matched: the model labeled the box order's cancellation a decision, which the cycle set aside. Fixed (DECISIONS #29); the live re-run gives 7 of 7, with T4 superseded at low certainty (status match 83), so apply mode holds its comment for a click.
 
+## Format test corpus (2026-10-17, branch `seed/format-corpus`)
+
+- `seed/formats/`: 19 files with commitments C10 to C32, and a `formats` section in the answer key (DECISIONS #32). Not uploaded to Box yet; `seed/formats/README.md` lists what each file should do today.
+
 ## Next: needs Box credentials
 
 1. Record live fixtures to a separate folder (for example `test/fixtures/v1-live/`), so the hand-written guard fixtures in `test/fixtures/v1/` are kept. `scripts/eval.ts` always writes to `test/fixtures/<prompt version>/` today, so it needs an output-directory option first; running `--record` now would overwrite the guard fixtures.
