@@ -83,6 +83,7 @@ FAKE_BOX=1 DEMO_PASSCODE=meow npm start   # open http://localhost:3000, passcode
 | `BOX_WEBHOOK_PRIMARY_KEY`, `BOX_WEBHOOK_SECONDARY_KEY` | Webhook signature keys |
 | `MODE` | `dry-run` (default) or `apply` |
 | `SWEEP_INTERVAL_MINUTES` | Default `15` |
+| `SWEEPS_ENABLED` | Default `true`; `false` turns off the startup and timed sweeps (webhooks and Scan now still run). On AWS it is set by the Terraform variable `sweeps_enabled`, not the secret |
 | `ORG_NAME` | Organization name used in the extraction prompt |
 | `DEMO_PASSCODE`, `SESSION_SECRET` | Page access |
 | `PORT` | Default `3000` |
