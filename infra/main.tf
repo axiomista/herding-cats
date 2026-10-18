@@ -65,10 +65,11 @@ resource "aws_ecs_express_gateway_service" "app" {
   execution_role_arn      = aws_iam_role.execution.arn
   infrastructure_role_arn = aws_iam_role.infrastructure.arn
   task_role_arn           = aws_iam_role.task.arn
-  cpu                     = "512"
-  memory                  = "1024"
-  health_check_path       = "/healthz"
-  wait_for_steady_state   = true
+  # 0.25 vCPU, the smallest Fargate size; Box AI does the heavy work remotely.
+  cpu                   = "256"
+  memory                = "1024"
+  health_check_path     = "/healthz"
+  wait_for_steady_state = true
 
   scaling_target = [{
     auto_scaling_metric       = "AVERAGE_CPU"
@@ -89,6 +90,11 @@ resource "aws_ecs_express_gateway_service" "app" {
     environment {
       name  = "PORT"
       value = tostring(var.container_port)
+    }
+
+    environment {
+      name  = "SWEEPS_ENABLED"
+      value = tostring(var.sweeps_enabled)
     }
 
     dynamic "secret" {

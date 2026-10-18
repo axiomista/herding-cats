@@ -9,6 +9,7 @@ export interface Config {
   webhookPrimaryKey: string;
   webhookSecondaryKey: string;
   mode: "dry-run" | "apply";
+  sweepsEnabled: boolean; // (new) SWEEPS_ENABLED=false turns off the startup and timed sweeps
   sweepIntervalMinutes: number;
   orgName: string;
   demoPasscode: string;
@@ -41,6 +42,8 @@ export function loadConfig(env: Env = process.env): Config {
   };
 
   const mode = env.MODE ?? "dry-run";
+  const sweeps = env.SWEEPS_ENABLED ?? "true";
+  if (sweeps !== "true" && sweeps !== "false") throw new Error(`SWEEPS_ENABLED must be true or false, got ${sweeps}`);
   if (mode !== "dry-run" && mode !== "apply") throw new Error(`MODE must be dry-run or apply, got ${mode}`);
 
   const config: Config = {
@@ -52,6 +55,7 @@ export function loadConfig(env: Env = process.env): Config {
     webhookPrimaryKey: need("BOX_WEBHOOK_PRIMARY_KEY", "fake-primary"),
     webhookSecondaryKey: need("BOX_WEBHOOK_SECONDARY_KEY", "fake-secondary"),
     mode,
+    sweepsEnabled: sweeps === "true",
     sweepIntervalMinutes: Number(env.SWEEP_INTERVAL_MINUTES ?? 15),
     orgName: env.ORG_NAME ?? (fakeBox ? "Nyanland-Meowtani Corporation" : need("ORG_NAME")),
     demoPasscode: need("DEMO_PASSCODE"),

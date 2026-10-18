@@ -169,8 +169,9 @@ async function main() {
   const runner = new CycleRunner(engine);
   const app = createApp(engine, runner, { secureCookies: !config.fakeBox, serviceUserId });
   app.listen(config.port, () => {
-    console.log(`herding-cats listening on :${config.port} (${config.fakeBox ? "FAKE_BOX" : "Box"}, ${config.mode})`);
-    startSweeper(runner, config.sweepIntervalMinutes);
+    console.log(`herding-cats listening on :${config.port} (${config.fakeBox ? "FAKE_BOX" : "Box"}, ${config.mode}, sweeps ${config.sweepsEnabled ? "on" : "off"})`);
+    // With sweeps off, only webhooks and Scan now start a cycle; the page is empty until one runs.
+    if (config.sweepsEnabled) startSweeper(runner, config.sweepIntervalMinutes);
     engine.state.watching = true;
   });
 }

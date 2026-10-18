@@ -27,3 +27,9 @@ variable "container_port" {
   type        = number
   default     = 3000
 }
+
+variable "sweeps_enabled" {
+  description = "Run the startup and timed sweeps; off to save Box AI and API calls"
+  type        = bool
+  default     = false
+}
