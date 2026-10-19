@@ -187,8 +187,25 @@ function renderStatus(s: AppState): void {
   if (errors.length) {
     $("status").after(h("section", { id: "file-errors", class: "file-errors", "aria-label": "Files that failed" },
       h("strong", {}, "Files that failed 😿"),
-      h("ul", {}, ...errors.map((e) => h("li", {}, `${fileName(e.fileId)}: ${e.message}`)))));
+      h("ul", {}, ...errors.map((e) => h("li", {}, `${fileName(e.fileId)}: ${e.message}`,
+        button("Dismiss", () => void dismissFileError(e.fileId), "ghost"))))));
   }
+}
+
+// The server logs the dismissal to the audit log and skips this version of the file until a new one is uploaded.
+async function dismissFileError(fileId: string): Promise<void> {
+  for (const b of document.querySelectorAll<HTMLButtonElement>("#file-errors button")) b.disabled = true;
+  const name = fileName(fileId);
+  try {
+    const res = await post(`/api/files/${encodeURIComponent(fileId)}/dismiss-error`, {});
+    const out = await res.json() as { status?: string; error?: string };
+    if (out.error) setNotice({ kind: "error", title: "That didn't go through 😿", text: out.error });
+    else setNotice({ kind: "info", title: "Dismissed.", text: `“${name}” is skipped until a new version is uploaded. This is in the audit log.` });
+  } catch {
+    setNotice({ kind: "error", title: "Could not reach the server." });
+  }
+  lastJson = "";
+  await refresh();
 }
 
 function renderProgress(s: AppState): void {

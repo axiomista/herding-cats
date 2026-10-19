@@ -18,6 +18,7 @@ export class State {
   private aiMonth = "";
   files = new Map<string, FileResult>();
   names = new Map<string, string>();
+  versions = new Map<string, string>();      // current file_version ID of every listed file
   markers = new Map<string, string>();       // scan markers this process knows, by file ID
   metaMarkers = new Map<string, string>();   // scan markers already written to Box metadata
   metaCounts = new Map<string, string>();    // hcOpenFindings last written to Box, by file ID
@@ -25,6 +26,7 @@ export class State {
   setAsideCommitments: Commitment[] = [];
   errors: { fileId: string; message: string }[] = [];
   dismissed = new Set<string>();             // fingerprints a person dismissed
+  dismissedFiles = new Map<string, string>(); // failed files a person dismissed: file ID to version
   heldLogged = new Set<string>();            // fingerprints already logged as HELD
   writing = new Set<string>();               // fingerprints whose write is in flight
   createdTasks = new Set<string>();          // IDs of tasks this process created in Box
@@ -63,7 +65,7 @@ export class State {
       findings: this.findings,
       setAside: [...results.flatMap((r) => r.setAside), ...cancelled, ...otherStatus],
       files: Object.fromEntries([...this.names].map(([id, name]) => [id, { name }])),
-      errors: this.errors,
+      errors: this.errors.filter((e) => !this.dismissedFiles.has(e.fileId)),
       unverified: results.flatMap((r) => r.unverified),
     };
   }

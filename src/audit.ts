@@ -2,7 +2,7 @@
 // one plain-text file per day in the audit folder.
 import type { BoxGateway } from "./box.js";
 import { MATCH_DEFAULTS } from "./config.js";
-import type { AuditEntry, Finding, Trigger } from "./types.js";
+import type { AuditEntry, FileDismissal, Finding, Trigger } from "./types.js";
 
 const TZ = "America/Los_Angeles";
 
@@ -74,6 +74,18 @@ export function formatEntry(e: AuditEntry): string {
   return [header, ...fields.map(([k, v]) => `${`${k}:`.padEnd(13)}${v}`)].join("\n");
 }
 
+// A person dismissed a file the cycle could not process. It is not a finding, so it has its own block.
+export function formatFileDismissal(e: FileDismissal): string {
+  const fields: [string, string][] = [
+    ["change", "file error dismissed; this version is skipped until a new version is uploaded"],
+    ["file", `"${e.fileName}" (file ${e.fileId}, version ${e.fileVersion})`],
+    ["error", e.error],
+    ["outcome", "ok"],
+  ];
+  const header = `${formatTime(e.time)}  ${TRIGGER_LABELS.click}  DISMISSED`;
+  return [header, ...fields.map(([k, v]) => `${`${k}:`.padEnd(13)}${v}`)].join("\n");
+}
+
 // Appends are serialized so parallel files do not race on the day file's version.
 export class AuditLog {
   private queue: Promise<void> = Promise.resolve();
@@ -81,7 +93,15 @@ export class AuditLog {
   constructor(private gateway: BoxGateway) {}
 
   append(entry: AuditEntry): Promise<void> {
-    const next = this.queue.then(() => this.gateway.appendAudit(auditDate(entry.time), `${formatEntry(entry)}\n\n`));
+    return this.write(entry.time, formatEntry(entry));
+  }
+
+  appendFileDismissal(e: FileDismissal): Promise<void> {
+    return this.write(e.time, formatFileDismissal(e));
+  }
+
+  private write(time: string, block: string): Promise<void> {
+    const next = this.queue.then(() => this.gateway.appendAudit(auditDate(time), `${block}\n\n`));
     this.queue = next.catch(() => undefined);
     return next;
   }

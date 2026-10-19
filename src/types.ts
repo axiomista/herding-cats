@@ -53,6 +53,9 @@ export interface AuditEntry { time: string; trigger: Trigger;
   evidence: { quote: string; fileId: string; fileVersion: string };
   model: string; matchScore?: number; outcome: string; }
 
+// (new) The audit block for a failed file a person dismissed.
+export interface FileDismissal { time: string; fileId: string; fileName: string; fileVersion: string; error: string }
+
 // (new) The GET /api/state response.
 export interface AppState { mode: "dry-run" | "apply"; watching: boolean;
   lastCycle?: { at: string; trigger: AuditEntry["trigger"]; filesChecked: number };

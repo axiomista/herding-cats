@@ -158,13 +158,19 @@ export async function runCycle(engine: Engine, fileIds: string[] | "all",
   opts: { trigger: Trigger; full?: boolean }): Promise<CycleSummary> {
   const { gateway, tracker, state, config } = engine;
   const listed = await gateway.listFiles(config.scanFolderId);
-  for (const f of listed) state.names.set(f.id, f.name);
+  for (const f of listed) { state.names.set(f.id, f.name); state.versions.set(f.id, f.version); }
   const files = inventory(listed, config.maxFileBytes);
   // A file no longer in the folder drops out of memory.
   const present = new Set(files.map((f) => f.id));
   for (const id of state.files.keys()) if (!present.has(id)) state.files.delete(id);
+  // A dismissed failure lasts for that version only. A new version, or a file that left the folder,
+  // is tried again.
+  for (const [id, version] of state.dismissedFiles) {
+    if (!present.has(id) || state.versions.get(id) !== version) state.dismissedFiles.delete(id);
+  }
 
-  const wanted = fileIds === "all" ? files : files.filter((f) => fileIds.includes(f.id));
+  const wanted = (fileIds === "all" ? files : files.filter((f) => fileIds.includes(f.id)))
+    .filter((f) => !state.dismissedFiles.has(f.id));
   state.running = { done: 0, total: wanted.length };
   let aiCalls = 0;
   let scanned = 0;
@@ -207,7 +213,7 @@ async function hydrateOthers(engine: Engine, files: BoxFile[], wanted: Set<strin
   let scanned = 0;
   const errors: State["errors"] = [];
   for (const file of files) {
-    if (wanted.has(file.id) || state.files.has(file.id)) continue;
+    if (wanted.has(file.id) || state.files.has(file.id) || state.dismissedFiles.has(file.id)) continue;
     // One unreadable file is recorded like a scan error; it must not fail the whole cycle.
     let meta: Record<string, string>;
     try { meta = await gateway.getMeta(file.id); } catch (err) {
@@ -253,7 +259,7 @@ export async function commitWrites(engine: Engine, trigger: Trigger): Promise<{ 
     } else if (await holdFinding(ctx, f, trigger)) { held++; touch(f); }
   }
   const listed = await gateway.listFiles(engine.config.scanFolderId);
-  for (const f of listed) state.names.set(f.id, f.name);
+  for (const f of listed) { state.names.set(f.id, f.name); state.versions.set(f.id, f.version); }
   const files = inventory(listed, engine.config.maxFileBytes);
   const tasks = (await Promise.all(files.map((f) => tracker.listTasks(f.id)))).flat();
   const matched = matchAll(engine, tasks);
