@@ -190,6 +190,8 @@ input[type="password"], input[type="date"] {
 .banner .close { margin-left: auto; background: none; border: 0; color: var(--soft); cursor: pointer; min-height: 44px; padding: 0 8px; font-weight: 600; }
 .file-errors { border: 1px solid var(--bad-border); background: var(--bad-surface); border-radius: 16px; padding: 14px 18px; }
 .file-errors ul { margin: 6px 0 0; padding-left: 18px; }
+.file-errors li + li { margin-top: 10px; }
+.file-errors .btn { display: flex; margin-top: 8px; min-height: 40px; padding: 6px 16px; }
 
 /* Bucket tiles */
 .heading-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 12px; }

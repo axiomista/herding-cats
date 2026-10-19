@@ -110,6 +110,39 @@ export function createApp(engine: Engine, runner: CycleRunner, opts: { secureCoo
     }
   });
 
+  // Hides a failed file and stops trying its current version. Only a logged dismissal takes effect,
+  // so a failed audit write leaves the error on the page to try again.
+  app.post("/api/files/:id/dismiss-error", session, async (req, res) => {
+    const fileId = String(req.params.id);
+    const failure = state.toAppState().errors?.find((e) => e.fileId === fileId);
+    const version = state.versions.get(fileId);
+    if (!failure || !version) { res.status(404).json({ error: "no failed file with that ID" }); return; }
+    try {
+      const auditError = await runner.exclusive(async () => {
+        state.dismissedFiles.set(fileId, version);
+        try {
+          await engine.audit.appendFileDismissal({
+            time: engine.now().toISOString(), fileId, fileName: state.names.get(fileId) ?? fileId,
+            fileVersion: version, error: failure.message,
+          });
+          return undefined;
+        } catch (err) {
+          state.dismissedFiles.delete(fileId);
+          return err instanceof Error ? err.message : String(err);
+        }
+      });
+      if (auditError !== undefined) {
+        console.error(`file dismissal not logged (${fileId}):`, auditError);
+        res.status(502).json({ error: `not dismissed: the audit log could not be written (${auditError})` });
+        return;
+      }
+      res.json({ status: "dismissed" });
+    } catch (err) {
+      if (err instanceof CycleBusyError) { res.status(409).json({ error: err.message }); return; }
+      throw err;
+    }
+  });
+
   app.post("/api/mode", session, async (req, res) => {
     const mode = req.body?.mode;
     if (mode !== "dry-run" && mode !== "apply") { res.status(400).json({ error: "mode must be dry-run or apply" }); return; }
