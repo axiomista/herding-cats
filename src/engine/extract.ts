@@ -64,14 +64,14 @@ export function parseItems(raw: string): ExtractedItem[] {
 
 // One file per call, so every item stays tied to its source. On invalid JSON, retry once with
 // the error appended.
-export async function extractItems(gateway: BoxGateway, fileId: string, prompt: string)
+export async function extractItems(gateway: BoxGateway, fileId: string, prompt: string, content?: string)
   : Promise<{ items: ExtractedItem[]; model: string; calls: number }> {
-  const first = await gateway.extract(fileId, prompt);
+  const first = await gateway.extract(fileId, prompt, content);
   try {
     return { items: parseItems(first.raw), model: first.model, calls: 1 };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    const retry = await gateway.extract(fileId, `${prompt}\n${RETRY_NOTE} (${message}). Return ONLY the JSON array.`);
+    const retry = await gateway.extract(fileId, `${prompt}\n${RETRY_NOTE} (${message}). Return ONLY the JSON array.`, content);
     return { items: parseItems(retry.raw), model: retry.model, calls: 2 };
   }
 }

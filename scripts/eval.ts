@@ -56,6 +56,7 @@ if (record) {
   engine.gateway = {
     listFiles: (id) => real.listFiles(id),
     fileText: (id) => real.fileText(id),
+    ocrText: (id) => real.ocrText(id),
     getMeta: (id) => real.getMeta(id),
     setMeta: (id, v) => real.setMeta(id, v),
     appendAudit: (d, t) => real.appendAudit(d, t),
@@ -63,7 +64,7 @@ if (record) {
     serviceUserId: () => real.serviceUserId(),
     folderAncestors: (id) => real.folderAncestors(id),
     classify: async (id) => { const r = await real.classify(id); fixture(id).classify = r; return r; },
-    extract: async (id, prompt) => { const r = await real.extract(id, prompt); fixture(id).extract.push(r); return r; },
+    extract: async (id, prompt, content) => { const r = await real.extract(id, prompt, content); fixture(id).extract.push(r); return r; },
   };
 }
 

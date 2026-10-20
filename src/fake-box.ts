@@ -45,6 +45,8 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 export class FakeBox implements BoxGateway, TrackerAdapter {
   fixtures = new Map<string, Fixture>();
   texts = new Map<string, string>();
+  // (new) What ocrText returns for an image or scan fixture.
+  ocr = new Map<string, string>();
   tasks: TrackerTask[] = [];
   comments = new Map<string, string[]>();
   meta = new Map<string, Record<string, string>>();
@@ -107,12 +109,18 @@ export class FakeBox implements BoxGateway, TrackerAdapter {
 
   async fileText(fileId: string): Promise<string> { return this.texts.get(fileId) ?? ""; }
 
+  async ocrText(fileId: string) {
+    await this.ai();
+    return { text: this.ocr.get(fileId) ?? "", model: "fake ocr" };
+  }
+
   async classify(fileId: string) {
     await this.ai();
     return { ...this.fixture(fileId).classify };
   }
 
-  async extract(fileId: string, prompt: string) {
+  // Answers come from the fixture, so a transcription passed as content changes nothing.
+  async extract(fileId: string, prompt: string, _content?: string) {
     await this.ai();
     const answers = this.fixture(fileId).extract;
     return answers[prompt.includes(RETRY_NOTE) ? answers.length - 1 : 0];

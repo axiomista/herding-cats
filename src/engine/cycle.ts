@@ -36,7 +36,10 @@ const errorMessage = (err: unknown) => (err instanceof Error ? err.message : Str
 // Prefixes the errors commitWrites records, so the next call can replace them.
 const META_WRITE = "metadata write: ";
 
-const SUPPORTED = /\.(txt|md|pdf|docx?|rtf|odt|html?|pptx?|xlsx?)$/i;
+// Images go through OCR. Box AI rejects some formats it has text for (.vtt), so they stay out.
+const SUPPORTED = /\.(txt|md|pdf|docx?|rtf|odt|html?|pptx?|xlsx?|png|jpe?g|tiff?|webp)$/i;
+// Files whose only text can be an OCR transcription when Box has no text layer for them.
+const SCANNABLE = /\.(pdf|png|jpe?g|tiff?|webp)$/i;
 
 export const scanMarker = (version: string) => `${version}@${PROMPT_VERSION}`;
 
@@ -100,17 +103,21 @@ async function scanFile(engine: Engine, file: BoxFile, full: boolean): Promise<{
       state.metaMarkers.delete(file.id);
     }
   }
+  // The text layer. An image or a scan has none, so Box AI transcribes it; /ai/extract
+  // cannot read a scanned PDF, so it gets the transcription instead of the file.
+  let text = await gateway.fileText(file.id);
+  const ocr = !text.trim() && SCANNABLE.test(file.name);
+  if (ocr) text = (await gateway.ocrText(file.id)).text;
   // 2. Classify.
   const doc = await gateway.classify(file.id);
   // 3. Extract.
   const prompt = buildPrompt(engine.promptTemplate, engine.config.orgName, peopleNames(people));
-  const extracted = await extractItems(gateway, file.id, prompt);
-  const aiCalls = 1 + extracted.calls;
-  // 4. Verify evidence.
-  const text = await gateway.fileText(file.id);
+  const extracted = await extractItems(gateway, file.id, prompt, ocr ? text : undefined);
+  const aiCalls = 1 + extracted.calls + (ocr ? 1 : 0);
+  // 4. Verify evidence, against the transcription for a scan.
   const items = extracted.items.map((i) => ({ ...i, fileId: file.id }));
   const { verified, unverified } = verifyItems(items, text);
-  // 5. Normalize owners and dates.
+  // 5. Normalize owners and dates. Evidence checked only against a transcription is flagged.
   const commitments: Commitment[] = [];
   const statusChanges: StatusChange[] = [];
   const setAside: FileResult["setAside"] = [];
@@ -123,7 +130,8 @@ async function scanFile(engine: Engine, file: BoxFile, full: boolean): Promise<{
     commitments.push({
       id: `${file.id}:${i}`, fileId: file.id, fileVersion: file.version, text: item.action,
       evidence: item.evidence, owner: owner.owner, ownerUserId: owner.userId, due: date.due,
-      dueAbsolute: date.absolute, status: "open", flags: [...owner.flags, ...date.flags],
+      dueAbsolute: date.absolute, status: "open",
+      flags: [...owner.flags, ...date.flags, ...(ocr ? ["evidence from OCR"] : [])],
     });
   });
   // 6. Deduplicate within the file.
