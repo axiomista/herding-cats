@@ -13,8 +13,9 @@ export function certaintyChecks(f: Omit<Finding, "certainty" | "checks">, cfg: C
   const checks: Record<string, boolean> = {};
   const c = f.commitment;
   if (c) {
-    // Commitments reach matching only after their evidence was found in the file text.
-    checks.evidence = true;
+    // Commitments reach matching only after their evidence was found in the file text. For an
+    // image or scan that text is Box AI's own transcription, so the quote is not independent.
+    checks.evidence = !(c.flags ?? []).includes("evidence from OCR");
     checks.owner = !!c.ownerUserId && !(c.flags ?? []).some((x) => x.startsWith("owner"));
     checks.dueDate = c.dueAbsolute !== false && !(c.flags ?? []).some((x) => x.startsWith("date"));
     // A cancellation or completion that matched below the threshold waits for a person.

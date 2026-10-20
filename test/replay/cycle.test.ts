@@ -5,7 +5,7 @@ import { cpSync, existsSync, mkdtempSync, readFileSync, writeFileSync } from "no
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
-import { commitWrites, runCycle } from "../../src/engine/cycle.js";
+import { commitWrites, inventory, runCycle } from "../../src/engine/cycle.js";
 import { PROMPT_VERSION } from "../../src/engine/extract.js";
 import { FakeBox, fakeEngine } from "../../src/fake-box.js";
 import { type AnswerKey, score } from "../../src/score.js";
@@ -350,4 +350,46 @@ test("an unchanged version still gets a current open count, and nothing is writt
   const full = box.writes.slice(rescan).filter((w) => w.op === "setMeta") as { values: Record<string, string> }[];
   assert.equal(full.length, 7);
   assert.ok(full.every((w) => w.values.hcExtract));
+});
+
+test("the inventory takes images and still skips formats Box AI rejects", () => {
+  const f = (name: string, size = 100) => ({ id: name, name, version: "1", size });
+  const kept = inventory(["a.png", "b.JPG", "c.jpeg", "d.tiff", "e.tif", "f.webp", "g.pdf", "h.vtt", "i.mp4", "j.zip",
+    "NO_EXTENSION"].map((n) => f(n)), 5 * 1024 * 1024).map((x) => x.name);
+  assert.deepEqual(kept, ["a.png", "b.JPG", "c.jpeg", "d.tiff", "e.tif", "f.webp", "g.pdf"]);
+});
+
+// A whiteboard photo has no text layer. Box AI transcribes it; extraction reads the transcription and
+// the quote is checked against it, so the commitment is found but is low certainty.
+test("an image goes through OCR and its commitment is low certainty", async () => {
+  const { engine, box } = await fakeEngine({ mode: "dry-run" });
+  const id = "2533370195582";
+  const ocr = "OPERATION LAP TAKEOVER\n\nACTIONS\n- TUX: order 200 heated lap blankets by Nov 7\n\nNO DOGS";
+  box.fixtures.set(id, { promptVersion: PROMPT_VERSION, file: { id, name: "Whiteboard - Operation Lap Takeover.png", version: "1" },
+    classify: { docType: "brainstorm", docDate: "2026-10-14", model: "fake" },
+    extract: [{ raw: JSON.stringify([{ kind: "commitment", action: "order 200 heated lap blankets", owner: "Tuxedo",
+      due: "2026-11-07", evidence: "TUX: order 200 heated lap blankets by Nov 7" }]), model: "fake" }] });
+  box.ocr.set(id, ocr);
+  const contents: (string | undefined)[] = [];
+  const extract = box.extract.bind(box);
+  box.extract = async (fileId, prompt, content) => { if (fileId === id) contents.push(content); return extract(fileId, prompt, content); };
+
+  const summary = await runCycle(engine, "all", { trigger: "full_scan", full: true });
+  assert.deepEqual(engine.state.errors, []);
+  assert.deepEqual(contents, [ocr], "extraction read the transcription, not the image");
+  const f = engine.state.findings.find((x) => x.commitment?.fileId === id)!;
+  assert.equal(f.bucket, "untracked");
+  assert.equal(f.certainty, "low");
+  // Owner and date resolve, so the transcription is the only reason it is low.
+  assert.deepEqual(Object.entries(f.checks).filter(([, ok]) => !ok).map(([k]) => k), ["evidence"]);
+  assert.ok(f.commitment!.flags!.includes("evidence from OCR"));
+  assert.ok(summary.aiCalls >= 7 * 2 + 3, "the OCR call is counted");
+});
+
+test("a PDF with a text layer is not sent to OCR", async () => {
+  const { engine, box } = await fakeEngine({ mode: "dry-run" });
+  let ocrCalls = 0;
+  box.ocrText = async () => { ocrCalls++; return { text: "", model: "fake" }; };
+  await runCycle(engine, "all", { trigger: "full_scan", full: true });
+  assert.equal(ocrCalls, 0, "the seed files all have text");
 });

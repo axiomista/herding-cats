@@ -7,9 +7,14 @@ import type { BoxFile } from "./types.js";
 
 export interface BoxGateway {
   listFiles(folderId: string): Promise<{ id: string; name: string; version: string; size: number }[]>;
+  // The file's own text layer: "" for an image or a scan, which Box gives no text.
   fileText(fileId: string): Promise<string>;
+  // (new) A transcription of an image or scan by Box AI. /ai/extract cannot read scanned PDFs, but
+  // /ai/extract_structured can.
+  ocrText(fileId: string): Promise<{ text: string; model: string }>;
   classify(fileId: string): Promise<{ docType: string; docDate?: string; author?: string; model: string }>;
-  extract(fileId: string, prompt: string): Promise<{ raw: string; model: string }>;
+  // content, when given, is read instead of the file: the OCR transcription of a scan.
+  extract(fileId: string, prompt: string, content?: string): Promise<{ raw: string; model: string }>;
   getMeta(fileId: string): Promise<Record<string, string>>;
   setMeta(fileId: string, values: Record<string, string>): Promise<void>;
   appendAudit(date: string, text: string): Promise<void>;
@@ -52,6 +57,9 @@ export function metadataPatch(existing: Record<string, string>, values: Record<s
 }
 
 const TEXT_EXTENSIONS = /\.(txt|md)$/i;
+
+const OCR_FIELDS = [{ key: "text", type: "string", description: "The full text of the document, verbatim",
+  prompt: "Transcribe all the text in the document verbatim, every page, in reading order." }];
 
 async function streamToString(stream: Readable | undefined): Promise<string> {
   if (!stream) return "";
@@ -124,7 +132,7 @@ export class RealBoxGateway implements BoxGateway {
     }
     const rep = file.representations?.entries?.find((r) => r.representation === "extracted_text");
     const template = rep?.content?.urlTemplate;
-    if (!template) throw new Error(`No extracted_text representation for file ${fileId}`);
+    if (!template) return "";
     const authHeader = await this.client.auth.retrieveAuthorizationHeader();
     const res = await fetch(template.replace("{+asset_path}", ""), { headers: { Authorization: authHeader } });
     if (res.status === 202) throw new Error(`extracted_text for file ${fileId} is still being generated`);
@@ -147,8 +155,18 @@ export class RealBoxGateway implements BoxGateway {
     };
   }
 
-  async extract(fileId: string, prompt: string) {
-    const res = await retryOn412(() => this.client.ai.createAiExtract({ prompt, items: [{ id: fileId, type: "file" }] }));
+  async ocrText(fileId: string) {
+    const res = await retryOn412(() => this.client.ai.createAiExtractStructured({
+      items: [{ id: fileId, type: "file" }],
+      fields: OCR_FIELDS,
+    }));
+    const text = (res.answer as Record<string, unknown>).text;
+    return { text: typeof text === "string" ? text : "", model: modelName(res.aiAgentInfo) };
+  }
+
+  async extract(fileId: string, prompt: string, content?: string) {
+    const res = await retryOn412(() => this.client.ai.createAiExtract({ prompt,
+      items: [{ id: fileId, type: "file", ...(content === undefined ? {} : { content }) }] }));
     return { raw: res.answer, model: modelName(res.aiAgentInfo) };
   }
 
