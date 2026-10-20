@@ -10,13 +10,14 @@ type Proposal =
   | { kind: "comment"; fileId: string; text: string };
 interface Finding { id: string; bucket: Bucket; certainty: "high" | "low"; checks: Record<string, boolean>;
   commitment?: Commitment; task?: TrackerTask; score?: number; fingerprint: string; proposal?: Proposal }
+interface ScanError { fileId: string; message: string; skippable?: boolean }
 interface ExtractedItem { kind: string; action: string; owner?: string; evidence: string; fileId?: string; newStatus?: string }
 interface AppState {
   mode: "dry-run" | "apply"; watching: boolean;
   lastCycle?: { at: string; trigger: string; filesChecked: number };
   running?: { done: number; total: number }; aiCallsThisMonth: number;
   findings: Finding[]; setAside: ExtractedItem[];
-  files?: Record<string, { name: string }>; errors?: { fileId: string; message: string }[];
+  files?: Record<string, { name: string }>; errors?: ScanError[]; skipped?: ScanError[];
   unverified?: ExtractedItem[];
 }
 
@@ -182,13 +183,35 @@ function renderStatus(s: AppState): void {
     statusCell("Box AI calls since start", String(s.aiCallsThisMonth), "Unchanged files are skipped without an AI call"),
   );
   const errors = s.errors ?? [];
-  const old = document.getElementById("file-errors");
-  old?.remove();
+  const skipped = s.skipped ?? [];
+  document.getElementById("file-errors")?.remove();
+  document.getElementById("file-skipped")?.remove();
+  if (skipped.length) {
+    $("status").after(h("section", { id: "file-skipped", class: "file-skipped muted", "aria-label": "Skipped files" },
+      h("strong", {}, "Skipped until a new version arrives"),
+      h("ul", {}, ...skipped.map((e) => h("li", {}, `${fileName(e.fileId)} `,
+        button("Scan it again", () => skipFile(e.fileId, false), "ghost small"))))));
+  }
   if (errors.length) {
     $("status").after(h("section", { id: "file-errors", class: "file-errors", "aria-label": "Files that failed" },
       h("strong", {}, "Files that failed 😿"),
-      h("ul", {}, ...errors.map((e) => h("li", {}, `${fileName(e.fileId)}: ${e.message}`)))));
+      h("ul", {}, ...errors.map((e) => h("li", {}, h("span", {}, `${fileName(e.fileId)}: ${e.message} `),
+        ...(e.skippable ? [button("Skip this file", () => skipFile(e.fileId, true), "ghost small")] : []))))));
   }
+}
+
+async function skipFile(fileId: string, skip: boolean): Promise<void> {
+  try {
+    const res = await post(`/api/files/${encodeURIComponent(fileId)}/skip`, { skip });
+    const out = await res.json() as { error?: string };
+    if (out.error) setNotice({ kind: "error", title: "That didn't go through 😿", text: out.error });
+    else if (skip) setNotice({ kind: "info", title: "Skipped.", text: `${fileName(fileId)} won't be scanned until a new version is uploaded.` });
+    else setNotice({ kind: "info", title: "Back in the pile.", text: `${fileName(fileId)} will be scanned on the next check.` });
+  } catch {
+    setNotice({ kind: "error", title: "Could not reach the server." });
+  }
+  lastJson = "";
+  await refresh();
 }
 
 function renderProgress(s: AppState): void {

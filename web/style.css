@@ -189,7 +189,10 @@ input[type="password"], input[type="date"] {
 .banner.error code { color: var(--bad-text); font-size: 13px; }
 .banner .close { margin-left: auto; background: none; border: 0; color: var(--soft); cursor: pointer; min-height: 44px; padding: 0 8px; font-weight: 600; }
 .file-errors { border: 1px solid var(--bad-border); background: var(--bad-surface); border-radius: 16px; padding: 14px 18px; }
-.file-errors ul { margin: 6px 0 0; padding-left: 18px; }
+.file-errors ul, .file-skipped ul { margin: 6px 0 0; padding-left: 18px; }
+.file-errors li, .file-skipped li { margin: 4px 0; }
+.file-skipped { border: 1px solid var(--border); border-radius: 16px; padding: 10px 18px; font-size: 14px; }
+.btn.small { min-height: 28px; padding: 2px 10px; font-size: 13px; margin-left: 6px; }
 
 /* Bucket tiles */
 .heading-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 12px; }

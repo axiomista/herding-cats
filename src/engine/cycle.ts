@@ -1,9 +1,9 @@
 // runCycle(fileIds): the steps in How it works. Every trigger runs through here; the triggers only
 // decide which files to pass.
 import type { AuditLog } from "../audit.js";
-import type { BoxGateway } from "../box.js";
+import { type BoxGateway, UnreadableFileError } from "../box.js";
 import type { Config } from "../config.js";
-import type { FileResult, State } from "../state.js";
+import { type FileResult, type State, skipKey } from "../state.js";
 import type { BoxFile, Commitment, Finding, TrackerAdapter, TrackerTask, Trigger } from "../types.js";
 import { applyFinding, buildProposal, holdFinding, type WriteContext } from "./apply.js";
 import { withCertainty } from "./certainty.js";
@@ -33,6 +33,8 @@ export interface CycleSummary {
 }
 
 const errorMessage = (err: unknown) => (err instanceof Error ? err.message : String(err));
+const scanError = (file: BoxFile, err: unknown): State["errors"][number] => ({ fileId: file.id,
+  version: file.version, message: errorMessage(err), ...(err instanceof UnreadableFileError ? { skippable: true } : {}) });
 // Prefixes the errors commitWrites records, so the next call can replace them.
 const META_WRITE = "metadata write: ";
 
@@ -83,6 +85,8 @@ async function pool<T>(items: T[], limit: number, fn: (item: T) => Promise<void>
 async function scanFile(engine: Engine, file: BoxFile, full: boolean): Promise<{ scanned: boolean; aiCalls: number }> {
   const { gateway, state, people } = engine;
   const marker = scanMarker(file.version);
+  // A person skipped this version after it could not be read.
+  if (state.skipped.has(skipKey(file.id, file.version))) return { scanned: false, aiCalls: 0 };
   // 1. Skip check. Full scans ignore it. A matching marker restores the saved extraction when this
   // process has not seen the file yet, so a restart does not forget the other documents.
   if (!full) {
@@ -184,7 +188,7 @@ export async function runCycle(engine: Engine, fileIds: string[] | "all",
       if (r.scanned) scanned++;
     } catch (err) {
       state.markers.delete(file.id);
-      errors.push({ fileId: file.id, message: errorMessage(err) });
+      errors.push(scanError(file, err));
     } finally {
       state.running!.done++;
     }
@@ -235,7 +239,7 @@ async function hydrateOthers(engine: Engine, files: BoxFile[], wanted: Set<strin
       if (r.scanned) scanned++;
     } catch (err) {
       state.markers.delete(file.id);
-      errors.push({ fileId: file.id, message: errorMessage(err) });
+      errors.push(scanError(file, err));
     }
   }
   return { aiCalls, scanned, errors };

@@ -53,13 +53,17 @@ export interface AuditEntry { time: string; trigger: Trigger;
   evidence: { quote: string; fileId: string; fileVersion: string };
   model: string; matchScore?: number; outcome: string; }
 
+// (new) A file a cycle could not process. skippable: this version will fail the same way every time.
+export interface ScanError { fileId: string; message: string; version?: string; skippable?: boolean }
+
 // (new) The GET /api/state response.
 export interface AppState { mode: "dry-run" | "apply"; watching: boolean;
   lastCycle?: { at: string; trigger: AuditEntry["trigger"]; filesChecked: number };
   running?: { done: number; total: number }; aiCallsThisMonth: number;
   findings: Finding[]; setAside: ExtractedItem[];
   files?: Record<string, { name: string }>;           // (new) names for card links
-  errors?: { fileId: string; message: string }[];      // (new) files the last cycle could not process
+  errors?: ScanError[];                                // (new) files the last cycle could not process
+  skipped?: ScanError[];                               // (new) unreadable files a person chose to skip
   unverified?: (ExtractedItem & { fileId: string })[]; // (new) items dropped by the evidence check
 }
 
