@@ -393,3 +393,21 @@ test("a PDF with a text layer is not sent to OCR", async () => {
   await runCycle(engine, "all", { trigger: "full_scan", full: true });
   assert.equal(ocrCalls, 0, "the seed files all have text");
 });
+
+test("an empty file is recorded with no items and no AI call", async () => {
+  const { engine, box } = await fakeEngine({ mode: "dry-run" });
+  const id = "2537795708811";
+  box.fixtures.set(id, { promptVersion: PROMPT_VERSION, file: { id, name: "Empty Agenda.txt", version: "1" },
+    classify: { docType: "other", model: "fake" }, extract: [] });
+  box.texts.set(id, "");
+  const asked: string[] = [];
+  const classify = box.classify.bind(box);
+  const extract = box.extract.bind(box);
+  box.classify = async (fileId) => { asked.push(fileId); return classify(fileId); };
+  box.extract = async (fileId, prompt, content) => { asked.push(fileId); return extract(fileId, prompt, content); };
+  const summary = await runCycle(engine, "all", { trigger: "full_scan", full: true });
+  assert.deepEqual(engine.state.errors, []);
+  assert.equal(engine.state.files.get(id)?.commitments.length, 0);
+  assert.ok(!asked.includes(id), "Box AI was never asked about the empty file");
+  assert.equal(summary.aiCalls, box.aiCalls, "the summary counts every AI call made");
+});

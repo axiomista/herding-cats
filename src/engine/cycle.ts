@@ -108,6 +108,15 @@ async function scanFile(engine: Engine, file: BoxFile, full: boolean): Promise<{
   let text = await gateway.fileText(file.id);
   const ocr = !text.trim() && SCANNABLE.test(file.name);
   if (ocr) text = (await gateway.ocrText(file.id)).text;
+  // Nothing to read: an empty file (Box AI rejects it with a 422) or a scan with no text. Record
+  // it with no items, so it is not scanned again until a new version arrives.
+  if (!text.trim()) {
+    state.files.set(file.id, { id: file.id, name: file.name, version: file.version, docType: "other",
+      model: "none", commitments: [], statusChanges: [], setAside: [], unverified: [] });
+    state.markers.set(file.id, marker);
+    state.metaMarkers.delete(file.id);
+    return { scanned: true, aiCalls: ocr ? 1 : 0 };
+  }
   // 2. Classify.
   const doc = await gateway.classify(file.id);
   // 3. Extract.
@@ -126,7 +135,7 @@ async function scanFile(engine: Engine, file: BoxFile, full: boolean): Promise<{
     if (item.kind === "status_change" || isClosing(item)) { statusChanges.push(item); return; }
     if (item.kind !== "commitment") { setAside.push(item); return; }
     const owner = resolveOwner(item.owner, people, { docType: doc.docType, text, evidence: item.evidence });
-    const date = resolveDate(item.due, doc.docDate);
+    const date = resolveDate(item.due, doc.docDate, item.evidence);
     commitments.push({
       id: `${file.id}:${i}`, fileId: file.id, fileVersion: file.version, text: item.action,
       evidence: item.evidence, owner: owner.owner, ownerUserId: owner.userId, due: date.due,

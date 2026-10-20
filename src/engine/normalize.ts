@@ -71,18 +71,32 @@ export interface DateResult { due?: string; absolute: boolean; flags: string[] }
 const iso = (y: number, m: number, d: number) =>
   `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
 
+// A date stated outright: ISO, a month name and day, a numeric month/day, or 11月20日.
+const EXPLICIT_DATE = new RegExp([
+  /\d{4}-\d{1,2}-\d{1,2}/.source,
+  /\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+\d{1,2}\b/.source,
+  /\b\d{1,2}\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\b/.source,
+  /\b\d{1,2}\/\d{1,2}\b/.source,
+  /\d{1,2}月\d{1,2}日/.source,
+].join("|"), "i");
+
 // Resolves a due date as written against the document's date. Only explicit dates resolve;
-// relative phrases ("next Friday", "end of month") are flagged.
-export function resolveDate(written: string | undefined, docDate: string | undefined): DateResult {
+// relative phrases ("next Friday", "end of month") are flagged. When the evidence is given, it
+// must state a date too: the model sometimes resolves 来週金曜日 ("next Friday") to a date itself.
+export function resolveDate(written: string | undefined, docDate: string | undefined,
+  evidence?: string): DateResult {
   if (!written) return { absolute: true, flags: [] };
+  if (evidence !== undefined && !EXPLICIT_DATE.test(evidence)) return { absolute: false, flags: ["date relative"] };
   const isoMatch = written.match(/\b(\d{4})-(\d{2})-(\d{2})\b/);
   if (isoMatch) return { due: isoMatch[0], absolute: true, flags: [] };
-  const m = written.toLowerCase().match(
+  const ja = written.match(/(?:(\d{4})年)?(\d{1,2})月(\d{1,2})日/);
+  const m = ja ? null : written.toLowerCase().match(
     /\b(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?\s+(\d{1,2})(?:st|nd|rd|th)?(?:,?\s+(\d{4}))?\b/);
-  if (!m) return { absolute: false, flags: ["date relative"] };
-  const month = MONTHS.findIndex((name) => name.startsWith(m[1])) + 1;
-  const day = Number(m[2]);
-  if (m[3]) return { due: iso(Number(m[3]), month, day), absolute: true, flags: [] };
+  if (!ja && !m) return { absolute: false, flags: ["date relative"] };
+  const month = ja ? Number(ja[2]) : MONTHS.findIndex((name) => name.startsWith(m![1])) + 1;
+  const day = Number(ja ? ja[3] : m![2]);
+  const year = ja ? ja[1] : m![3];
+  if (year) return { due: iso(Number(year), month, day), absolute: true, flags: [] };
   if (!docDate) return { absolute: false, flags: ["date unresolved"] };
   const [y] = docDate.split("-").map(Number);
   let due = iso(y, month, day);

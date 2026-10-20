@@ -45,7 +45,7 @@ test("emailSender finds the right message in a thread", () => {
   assert.equal(emailSender(email, "Tuxedo has approved the spend."), "Pixel");
 });
 
-const dates: { written: string | undefined; docDate?: string; due?: string; absolute: boolean; flag?: string }[] = [
+const dates: { written: string | undefined; docDate?: string; evidence?: string; due?: string; absolute: boolean; flag?: string }[] = [
   { written: "October 23", docDate: "2026-09-08", due: "2026-10-23", absolute: true },
   { written: "by October 1", docDate: "2026-09-15", due: "2026-10-01", absolute: true },
   { written: "Oct 20", docDate: "2026-10-02", due: "2026-10-20", absolute: true },
@@ -57,11 +57,22 @@ const dates: { written: string | undefined; docDate?: string; due?: string; abso
   { written: "next Friday", docDate: "2026-09-08", absolute: false, flag: "date relative" },
   { written: "end of the month", docDate: "2026-09-08", absolute: false, flag: "date relative" },
   { written: "October 23", absolute: false, flag: "date unresolved" },
+  { written: "11月14日", docDate: "2026-10-16", due: "2026-11-14", absolute: true },
+  { written: "2027年1月5日", docDate: "2026-10-16", due: "2027-01-05", absolute: true },
+  // The model resolved a relative date itself; the evidence states no date, so it is flagged.
+  { written: "2026-10-23", docDate: "2026-10-16", evidence: "ピクセルは来週金曜日までに日なたマップを更新する。",
+    absolute: false, flag: "date relative" },
+  { written: "2026-10-23", docDate: "2026-10-16", evidence: "Dale will review it next Friday.",
+    absolute: false, flag: "date relative" },
+  { written: "2026-11-20", evidence: "ビスケッツ卿：令和8年11月20日までに缶切り研修第2章を完成", due: "2026-11-20", absolute: true },
+  { written: "2026-11-07", evidence: "TUX: order 200 heated lap blankets by Nov 7", due: "2026-11-07", absolute: true },
+  { written: "2026-10-29", evidence: "Tuxedo Meowtani | Relocate the Floor 4 ficus | 2026-10-29 | Open",
+    due: "2026-10-29", absolute: true },
 ];
 
 for (const d of dates) {
   test(`date: ${d.written ?? "(none)"} against ${d.docDate ?? "no doc date"}`, () => {
-    const r = resolveDate(d.written, d.docDate);
+    const r = resolveDate(d.written, d.docDate, d.evidence);
     assert.equal(r.due, d.due);
     assert.equal(r.absolute, d.absolute);
     assert.deepEqual(r.flags, d.flag ? [d.flag] : []);
