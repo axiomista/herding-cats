@@ -1,5 +1,5 @@
 // In-memory working state: findings, review queue, progress. Rebuilt by a full scan after a restart.
-import type { AppState, Commitment, ExtractedItem, Finding, Trigger } from "./types.js";
+import type { AppState, Commitment, ExtractedItem, Finding, ScanError, Trigger } from "./types.js";
 import type { StatusChange } from "./engine/match.js";
 
 export interface FileResult {
@@ -8,6 +8,9 @@ export interface FileResult {
   setAside: (ExtractedItem & { fileId: string })[];
   unverified: (ExtractedItem & { fileId: string })[];
 }
+
+// A skip lasts until the file's next version.
+export const skipKey = (fileId: string, version: string) => `${fileId}:${version}`;
 
 export class State {
   mode: AppState["mode"];
@@ -23,8 +26,9 @@ export class State {
   metaCounts = new Map<string, string>();    // hcOpenFindings last written to Box, by file ID
   findings: Finding[] = [];
   setAsideCommitments: Commitment[] = [];
-  errors: { fileId: string; message: string }[] = [];
+  errors: ScanError[] = [];
   dismissed = new Set<string>();             // fingerprints a person dismissed
+  skipped = new Map<string, ScanError>();    // unreadable files a person skipped, by skipKey
   heldLogged = new Set<string>();            // fingerprints already logged as HELD
   writing = new Set<string>();               // fingerprints whose write is in flight
   createdTasks = new Set<string>();          // IDs of tasks this process created in Box
@@ -64,6 +68,7 @@ export class State {
       setAside: [...results.flatMap((r) => r.setAside), ...cancelled, ...otherStatus],
       files: Object.fromEntries([...this.names].map(([id, name]) => [id, { name }])),
       errors: this.errors,
+      skipped: [...this.skipped.values()],
       unverified: results.flatMap((r) => r.unverified),
     };
   }

@@ -14,7 +14,7 @@ import { loadPrompt } from "./engine/extract.js";
 import { loadPeople } from "./engine/normalize.js";
 import { PasscodeLimiter } from "./passcode-limit.js";
 import { score, type AnswerKey } from "./score.js";
-import { State } from "./state.js";
+import { skipKey, State } from "./state.js";
 import { BoxTasksTracker } from "./trackers/box-tasks.js";
 import { fullScan, startSweeper } from "./triggers/sweep.js";
 import { createWebhookHandler } from "./triggers/webhook.js";
@@ -104,6 +104,31 @@ export function createApp(engine: Engine, runner: CycleRunner, opts: { secureCoo
       }, finding, "click"));
       if (result.status === "applied") state.findings = state.findings.filter((f) => f.id !== finding.id);
       res.status(result.status === "failed" ? 502 : 200).json(result);
+    } catch (err) {
+      if (err instanceof CycleBusyError) { res.status(409).json({ error: err.message }); return; }
+      throw err;
+    }
+  });
+
+  // (new) Skip a file that cannot be read until its next version, or scan it again.
+  app.post("/api/files/:id/skip", session, async (req, res) => {
+    const skip = req.body?.skip;
+    if (typeof skip !== "boolean") { res.status(400).json({ error: "skip must be true or false" }); return; }
+    try {
+      const status = await runner.exclusive(async () => {
+        if (!skip) {
+          const found = [...state.skipped.entries()].filter(([, e]) => e.fileId === req.params.id);
+          for (const [k] of found) state.skipped.delete(k);
+          return found.length ? "scan_again" : undefined;
+        }
+        const error = state.errors.find((e) => e.fileId === req.params.id && e.skippable && e.version);
+        if (!error) return undefined;
+        state.skipped.set(skipKey(error.fileId, error.version!), error);
+        state.errors = state.errors.filter((e) => e !== error);
+        return "skipped";
+      });
+      if (!status) { res.status(404).json({ error: skip ? "no skippable error for that file" : "that file is not skipped" }); return; }
+      res.json({ status });
     } catch (err) {
       if (err instanceof CycleBusyError) { res.status(409).json({ error: err.message }); return; }
       throw err;

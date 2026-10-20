@@ -58,6 +58,14 @@ export function metadataPatch(existing: Record<string, string>, values: Record<s
 
 const TEXT_EXTENSIONS = /\.(txt|md)$/i;
 
+// (new) A file Box cannot turn into text, so every scan of this version fails the same way. The
+// page offers to skip it until a new version arrives.
+export class UnreadableFileError extends Error {}
+
+// Box reports a password-protected PDF only as error_conversion_failed, so look for the PDF's
+// own encryption dictionary.
+const isEncryptedPdf = (bytes: Buffer) => bytes.toString("latin1").includes("/Encrypt");
+
 const OCR_FIELDS = [{ key: "text", type: "string", description: "The full text of the document, verbatim",
   prompt: "Transcribe all the text in the document verbatim, every page, in reading order." }];
 
@@ -131,6 +139,19 @@ export class RealBoxGateway implements BoxGateway {
       return streamToString((await this.client.downloads.downloadFile(fileId)) as Readable | undefined);
     }
     const rep = file.representations?.entries?.find((r) => r.representation === "extracted_text");
+    if (rep?.status?.state === "error") {
+      if (/\.pdf$/i.test(file.name ?? "")) {
+        const stream = (await this.client.downloads.downloadFile(fileId)) as Readable | undefined;
+        const chunks: Buffer[] = [];
+        for await (const chunk of stream ?? []) chunks.push(Buffer.from(chunk));
+        if (isEncryptedPdf(Buffer.concat(chunks))) {
+          throw new UnreadableFileError("This PDF is password-protected, so Box can't read it. "
+            + "Upload a copy without the password, or skip it.");
+        }
+      }
+      throw new UnreadableFileError("Box couldn't turn this file into text. It may be damaged; "
+        + "upload a new version, or skip it.");
+    }
     const template = rep?.content?.urlTemplate;
     if (!template) return "";
     const authHeader = await this.client.auth.retrieveAuthorizationHeader();

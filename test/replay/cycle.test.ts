@@ -7,8 +7,10 @@ import { join } from "node:path";
 import { test } from "node:test";
 import { commitWrites, inventory, runCycle } from "../../src/engine/cycle.js";
 import { PROMPT_VERSION } from "../../src/engine/extract.js";
+import { UnreadableFileError } from "../../src/box.js";
 import { FakeBox, fakeEngine } from "../../src/fake-box.js";
 import { type AnswerKey, score } from "../../src/score.js";
+import { skipKey } from "../../src/state.js";
 
 const key = JSON.parse(readFileSync("seed/answer_key.json", "utf8")) as AnswerKey & { files: Record<string, string> };
 // The fake Box uses the real file IDs recorded in each fixture.
@@ -392,4 +394,29 @@ test("a PDF with a text layer is not sent to OCR", async () => {
   box.ocrText = async () => { ocrCalls++; return { text: "", model: "fake" }; };
   await runCycle(engine, "all", { trigger: "full_scan", full: true });
   assert.equal(ocrCalls, 0, "the seed files all have text");
+});
+
+test("a skipped unreadable file is not scanned again until a new version", async () => {
+  const { engine, box } = await fakeEngine({ mode: "dry-run" });
+  const [file] = await box.listFiles("folder");
+  let reads = 0;
+  const fileText = box.fileText.bind(box);
+  box.fileText = async (id) => {
+    if (id !== file.id) return fileText(id);
+    reads++;
+    throw new UnreadableFileError("This PDF is password-protected, so Box can't read it.");
+  };
+  await runCycle(engine, "all", { trigger: "full_scan", full: true });
+  assert.deepEqual(engine.state.errors.map((e) => [e.fileId, e.skippable]), [[file.id, true]]);
+
+  const error = engine.state.errors[0];
+  engine.state.skipped.set(skipKey(file.id, error.version!), error);
+  await runCycle(engine, "all", { trigger: "full_scan", full: true });
+  assert.equal(reads, 1, "the skipped version was not read again");
+  assert.deepEqual(engine.state.errors, []);
+  assert.deepEqual(engine.state.toAppState().skipped?.map((e) => e.fileId), [file.id]);
+
+  box.uploadVersion(file.id, "new text");
+  await runCycle(engine, "all", { trigger: "full_scan", full: true });
+  assert.equal(reads, 2, "a new version is read again");
 });
