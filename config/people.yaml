@@ -7,15 +7,16 @@ users:
 
 people:
   - name: Sir Reginald Biscuits
-    aliases: [Biscuits, Sir Reginald, Reginald Biscuits]
+    aliases: [Biscuits, Sir Reginald, Reginald Biscuits, ビスケッツ卿]
     user: vanessa
   - name: Dale Henderson
     aliases: [Dale]
     user: vanessa
   - name: Tuxedo Meowtani
-    aliases: [Tuxedo]
+    aliases: [Tuxedo, TUX, タキシード, タキシード・ニャウタニ]
     user: zaq
   - name: Pixel
+    aliases: [ピクセル]
     user: zaq
   - name: Chairmeow Baroness Nyanland
     aliases: [Chairmeow, Baroness Nyanland, The Chairmeow]

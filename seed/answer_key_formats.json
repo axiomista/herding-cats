@@ -1,0 +1,456 @@
+{
+  "_about": "Format test corpus for Herding Cats. Keep this file OUT of the Box folder. Commitment IDs continue from answer_key.json (C01-C09). None of these files changes the status of C01-C09, so the original eval still holds with them uploaded.",
+  "version": 1,
+  "people_additions": {
+    "aliases": {
+      "Tuxedo Meowtani": [
+        "タキシード",
+        "タキシード・ニャウタニ",
+        "TUX"
+      ],
+      "Pixel": [
+        "ピクセル"
+      ],
+      "Sir Reginald Biscuits": [
+        "ビスケッツ卿"
+      ]
+    },
+    "unmapped_on_purpose": [
+      "タマ支社長"
+    ]
+  },
+  "handling_legend": {
+    "full_cycle": "Native text: extract, verify and match like the seed docs.",
+    "full_cycle_plus_ocr": "Text pages verify normally; scanned pages need the OCR path.",
+    "ocr_path": "Needs OCR. /ai/extract has none; only /ai/extract_structured does. No text layer, so findings are low certainty at best.",
+    "skip_unsupported": "Inventory skips it; shown as unsupported; no AI call.",
+    "skip_over_size_limit": "Inventory skips it (over 5 MB); no AI call.",
+    "skip_or_error_audited": "Skipped or fails; the error is audited and the cycle continues.",
+    "no_findings_no_crash": "Processed, zero items, no error."
+  },
+  "files": {
+    "sync03_docx": {
+      "name": "2026-10-06 Weekly Sync 03.docx",
+      "format": "docx",
+      "expected_handling": "full_cycle",
+      "note": "Smart quotes, em dash and bullets test evidence normalization."
+    },
+    "stapler_pdf": {
+      "name": "2026-10-08 Memo - Stapler Consolidation Initiative.pdf",
+      "format": "pdf (text layer)",
+      "expected_handling": "full_cycle",
+      "note": "Table cells must not scramble the evidence sentence."
+    },
+    "roadmap_pptx": {
+      "name": "Q4 World Domination Roadmap.pptx",
+      "format": "pptx",
+      "expected_handling": "full_cycle",
+      "note": "C14 lives only in speaker notes; record whether Box includes notes in extracted text."
+    },
+    "tracker_xlsx": {
+      "name": "Action Item Tracker - Floor 4 Annexation.xlsx",
+      "format": "xlsx",
+      "expected_handling": "full_cycle",
+      "note": "Evidence is a spreadsheet row, not a sentence: the evidence check may fail. A cancelled row and an Ideas sheet must not become findings."
+    },
+    "decree_scan": {
+      "name": "2026-10-09 Decree - Mandatory Sunbeam Rotation (signed scan).pdf",
+      "format": "pdf (image only, no text layer)",
+      "expected_handling": "ocr_path",
+      "note": "Needs OCR. /ai/extract has none; /ai/extract_structured does. No text layer, so evidence cannot be verified."
+    },
+    "reserves_scan7": {
+      "name": "FY26 Annual Report - Treat Reserves (scanned, 7 pages).pdf",
+      "format": "pdf (image only, 7 pages)",
+      "expected_handling": "ocr_path",
+      "note": "C19 is on page 2 and C18 on page 6. If only 5 pages are read, C18 goes missing silently."
+    },
+    "contract_mixed": {
+      "name": "2026-10-10 Contract - Laser Pointer Maintenance (with signed page).pdf",
+      "format": "pdf (pages 1-2 text, page 3 scanned)",
+      "expected_handling": "full_cycle_plus_ocr",
+      "note": "C21 is on a text page (verifiable); C20 is only on the scanned page."
+    },
+    "whiteboard_png": {
+      "name": "Whiteboard - Operation Lap Takeover.png",
+      "format": "png",
+      "expected_handling": "ocr_path",
+      "note": "Shorthand owner and date ('TUX', 'Nov 7')."
+    },
+    "notice_tiff": {
+      "name": "Break Room Notice - Treat Dispenser.tiff",
+      "format": "tiff",
+      "expected_handling": "ocr_path",
+      "note": "Recurring commitment with no due date."
+    },
+    "chat_webp": {
+      "name": "Chat Screenshot - #exec-lounge.webp",
+      "format": "webp",
+      "expected_handling": "ocr_path",
+      "note": "'I' resolves to the message author (Pixel)."
+    },
+    "tokyo_docx": {
+      "name": "2026-10-13 東京支社 定例会議 議事録.docx",
+      "format": "docx (Japanese)",
+      "expected_handling": "full_cycle",
+      "note": "Katakana aliases must resolve (タキシード = Tuxedo, ピクセル = Pixel); タマ支社長 is unmapped and must be flagged; '来週金曜日' is relative and must be flagged, not guessed."
+    },
+    "tokyo_png": {
+      "name": "ホワイトボード - 世界征服会議.png",
+      "format": "png (Japanese)",
+      "expected_handling": "ocr_path",
+      "note": "Japanese OCR; date written in the Reiwa era (令和8年 = 2026); owner ビスケッツ卿 = Sir Reginald Biscuits."
+    },
+    "rehearsal_vtt": {
+      "name": "2026-10-14 All-Paws Rehearsal - Transcript.vtt",
+      "format": "vtt",
+      "expected_handling": "full_cycle (if Box treats .vtt as text)",
+      "note": "'I' resolves to the speaker label."
+    },
+    "recording_mp4": {
+      "name": "2026-10-15 Board Meeting Recording.mp4",
+      "format": "mp4",
+      "expected_handling": "skip_unsupported",
+      "note": "No AI call; shown as unsupported."
+    },
+    "oversize_pdf": {
+      "name": "Floor Plan - Ultra High Resolution (oversize).pdf",
+      "format": "pdf over 5 MB",
+      "expected_handling": "skip_over_size_limit",
+      "note": "Contains C30 so a wrongly scanned file shows up as an unexpected finding."
+    },
+    "encrypted_pdf": {
+      "name": "Confidential - Succession Plan (password tuna).pdf",
+      "format": "pdf, password-protected (password: tuna)",
+      "expected_handling": "skip_or_error_audited",
+      "note": "Box cannot extract text; the cycle must log the error and continue. Contains C31."
+    },
+    "archive_zip": {
+      "name": "Archive - Old Decrees.zip",
+      "format": "zip",
+      "expected_handling": "skip_unsupported",
+      "note": "Not unpacked."
+    },
+    "no_extension": {
+      "name": "MEMO_FROM_THE_CHAIRMEOW",
+      "format": "text, no file extension",
+      "expected_handling": "skip_or_error_audited",
+      "note": "/ai/extract_structured requires an extension. Contains C32."
+    },
+    "empty_txt": {
+      "name": "Empty Agenda.txt",
+      "format": "txt, 0 bytes",
+      "expected_handling": "no_findings_no_crash",
+      "note": ""
+    }
+  },
+  "commitments": [
+    {
+      "id": "C10",
+      "source": "sync03_docx",
+      "owner": "Tuxedo Meowtani",
+      "due": "2026-10-30",
+      "action": "Finalize the seating chart for the annexation of the Third Floor break room",
+      "evidence": "Tuxedo will finalize the seating chart for the “peaceful annexation” of the Third Floor break room by October 30.",
+      "expected_finding": "untracked"
+    },
+    {
+      "id": "C11",
+      "source": "sync03_docx",
+      "owner": "Dale Henderson",
+      "due": "2026-10-27",
+      "action": "File form HR-12b (Request for Additional Lap Time)",
+      "evidence": "Dale will file form HR-12b — “Request for Additional Lap Time” — by October 27.",
+      "expected_finding": "untracked"
+    },
+    {
+      "id": "C12",
+      "source": "stapler_pdf",
+      "owner": "Pixel",
+      "due": "2026-11-03",
+      "action": "Deliver the Stapler Census to the Chairmeow's office",
+      "evidence": "Pixel will deliver the completed Stapler Census to the Chairmeow’s office by November 3.",
+      "expected_finding": "untracked"
+    },
+    {
+      "id": "C13",
+      "source": "roadmap_pptx",
+      "owner": "Sir Reginald Biscuits",
+      "due": "2026-11-12",
+      "action": "Present the Global Nap Schedule to the Board",
+      "evidence": "Sir Reginald Biscuits will present the Global Nap Schedule to the Board by November 12.",
+      "expected_finding": "untracked"
+    },
+    {
+      "id": "C14",
+      "source": "roadmap_pptx",
+      "owner": "Dale Henderson",
+      "due": "2026-11-10",
+      "action": "Book the projector for the Board meeting",
+      "evidence": "Dale will book the projector for the Board meeting by November 10.",
+      "expected_finding": "untracked if speaker notes are extracted; otherwise not found (record which)"
+    },
+    {
+      "id": "C15",
+      "source": "tracker_xlsx",
+      "owner": "Tuxedo Meowtani",
+      "due": "2026-10-29",
+      "action": "Relocate the Floor 4 ficus to a sunnier, more strategic position",
+      "evidence": "Tuxedo Meowtani | Relocate the Floor 4 ficus to a sunnier, more strategic position | 2026-10-29 | Open",
+      "expected_finding": "untracked",
+      "evidence_kind": "row"
+    },
+    {
+      "id": "C16",
+      "source": "tracker_xlsx",
+      "owner": "Dale Henderson",
+      "due": "2026-11-05",
+      "action": "Label every chair on Floor 4 'Reserved for Management'",
+      "evidence": "Dale Henderson | Label every chair on Floor 4 'Reserved for Management' | 2026-11-05 | Open",
+      "expected_finding": "untracked",
+      "evidence_kind": "row"
+    },
+    {
+      "id": "C17",
+      "source": "decree_scan",
+      "owner": "Pixel",
+      "due": "2026-10-31",
+      "action": "Post the Sunbeam Rotation Schedule on every floor",
+      "evidence": "Pixel will post the new Sunbeam Rotation Schedule on every floor by October 31.",
+      "expected_finding": "untracked (low certainty: OCR, unverifiable evidence)"
+    },
+    {
+      "id": "C19",
+      "source": "reserves_scan7",
+      "owner": "Tuxedo Meowtani",
+      "due": "2026-11-04",
+      "action": "Audit the catnip vault",
+      "evidence": "Tuxedo will audit the catnip vault by November 4.",
+      "expected_finding": "untracked (low certainty)",
+      "page": 2
+    },
+    {
+      "id": "C18",
+      "source": "reserves_scan7",
+      "owner": "Sir Reginald Biscuits",
+      "due": "2026-11-20",
+      "action": "Reconcile the salmon reserve ledger",
+      "evidence": "Sir Reginald Biscuits will reconcile the salmon reserve ledger by November 20.",
+      "expected_finding": "untracked (low certainty) if all pages are read; missing if only 5 are",
+      "page": 6
+    },
+    {
+      "id": "C21",
+      "source": "contract_mixed",
+      "owner": "Pixel",
+      "due": "2026-11-02",
+      "action": "Schedule the quarterly red-dot calibration",
+      "evidence": "Pixel will schedule the quarterly red-dot calibration with Laser Dynamics by November 2.",
+      "expected_finding": "untracked"
+    },
+    {
+      "id": "C20",
+      "source": "contract_mixed",
+      "owner": "Dale Henderson",
+      "due": "2026-10-28",
+      "action": "Return the countersigned contract to Laser Dynamics",
+      "evidence": "Dale will return the countersigned contract to Laser Dynamics by October 28.",
+      "expected_finding": "untracked (low certainty: scanned page)"
+    },
+    {
+      "id": "C22",
+      "source": "whiteboard_png",
+      "owner": "Tuxedo Meowtani",
+      "due": "2026-11-07",
+      "action": "Order 200 heated lap blankets",
+      "evidence": "TUX: order 200 heated lap blankets by Nov 7",
+      "expected_finding": "untracked (low certainty; alias 'TUX' may not resolve)"
+    },
+    {
+      "id": "C23",
+      "source": "notice_tiff",
+      "owner": "Dale Henderson",
+      "due": null,
+      "action": "Refill the executive treat dispenser every Friday",
+      "evidence": "Dale will refill the executive treat dispenser every Friday.",
+      "expected_finding": "untracked (low certainty; no due date)"
+    },
+    {
+      "id": "C24",
+      "source": "chat_webp",
+      "owner": "Pixel",
+      "due": "2026-10-30",
+      "action": "Get the Nap Pod quote from Snoozeworks",
+      "evidence": "I'll get the Nap Pod quote from Snoozeworks by Oct 30",
+      "expected_finding": "untracked (low certainty; owner from chat author)"
+    },
+    {
+      "id": "C25",
+      "source": "tokyo_docx",
+      "owner": "Tuxedo Meowtani",
+      "due": "2026-11-14",
+      "action": "Draft the Tokyo branch nap schedule",
+      "evidence": "タキシードは、11月14日までに東京支社の昼寝スケジュール案を作成する。",
+      "expected_finding": "untracked",
+      "translation": "Tuxedo will draft the Tokyo branch nap schedule by November 14."
+    },
+    {
+      "id": "C26",
+      "source": "tokyo_docx",
+      "owner": "タマ支社長 (unmapped)",
+      "due": "2026-10-31",
+      "action": "Survey all employees' lap usage",
+      "evidence": "タマ支社長は、10月31日までに全社員の膝の使用状況を調査する。",
+      "expected_finding": "untracked; owner unresolved, so low certainty",
+      "translation": "Branch Manager Tama will survey all employees' lap usage by October 31."
+    },
+    {
+      "id": "C27",
+      "source": "tokyo_docx",
+      "owner": "Pixel",
+      "due": null,
+      "action": "Update the sunbeam map",
+      "evidence": "ピクセルは来週金曜日までに日なたマップを更新する。",
+      "expected_finding": "untracked; relative date flagged, so low certainty",
+      "translation": "Pixel will update the sunbeam map by next Friday."
+    },
+    {
+      "id": "C28",
+      "source": "tokyo_png",
+      "owner": "Sir Reginald Biscuits",
+      "due": "2026-11-20",
+      "action": "Finish chapter 2 of the can-opening training",
+      "evidence": "ビスケッツ卿：令和8年11月20日までに缶切り研修第2章を完成",
+      "expected_finding": "untracked (low certainty)",
+      "translation": "Sir Reginald Biscuits: finish chapter 2 of the can-opening training by November 20, Reiwa 8 (2026)."
+    },
+    {
+      "id": "C29",
+      "source": "rehearsal_vtt",
+      "owner": "Dale Henderson",
+      "due": "2026-10-22",
+      "action": "Print the 400 All-Paws agendas",
+      "evidence": "I'll print the 400 agendas by October 22.",
+      "expected_finding": "untracked"
+    },
+    {
+      "id": "C30",
+      "source": "oversize_pdf",
+      "owner": "Pixel",
+      "due": "2026-11-01",
+      "action": "Measure every windowsill on Floor 5",
+      "evidence": "Pixel will measure every windowsill on Floor 5 by November 1.",
+      "expected_finding": "not found (file skipped)"
+    },
+    {
+      "id": "C31",
+      "source": "encrypted_pdf",
+      "owner": "Tuxedo Meowtani",
+      "due": "2026-12-01",
+      "action": "Groom a successor for the Chairmeow",
+      "evidence": "Tuxedo will groom a suitable successor for the Chairmeow by December 1.",
+      "expected_finding": "not found (unreadable)"
+    },
+    {
+      "id": "C32",
+      "source": "no_extension",
+      "owner": "Sir Reginald Biscuits",
+      "due": "2026-11-15",
+      "action": "Polish the throne",
+      "evidence": "Sir Reginald Biscuits will polish the throne by November 15.",
+      "expected_finding": "not found (no extension)"
+    }
+  ],
+  "non_commitments": [
+    {
+      "source": "sync03_docx",
+      "kind": "idea",
+      "text": "Someone should probably look into the stapler situation."
+    },
+    {
+      "source": "sync03_docx",
+      "kind": "decision",
+      "text": "The Third Floor break room is now Sovereign Executive Territory."
+    },
+    {
+      "source": "stapler_pdf",
+      "kind": "decision",
+      "text": "Effective immediately, all staplers are the property of the Board."
+    },
+    {
+      "source": "stapler_pdf",
+      "kind": "policy",
+      "text": "Associates may request a stapler in writing, in triplicate."
+    },
+    {
+      "source": "roadmap_pptx",
+      "kind": "idea",
+      "text": "Explore a subscription tier for premium lap access."
+    },
+    {
+      "source": "tracker_xlsx",
+      "kind": "cancelled_commitment",
+      "text": "Pixel | Requisition three bags of premium catnip | 2026-10-01 | Cancelled"
+    },
+    {
+      "source": "tracker_xlsx",
+      "kind": "idea",
+      "text": "Rename Floor 4 'The Annex' for brand cohesion?"
+    },
+    {
+      "source": "tracker_xlsx",
+      "kind": "idea",
+      "text": "Mandatory purring breaks (2 per hour)"
+    },
+    {
+      "source": "decree_scan",
+      "kind": "decision",
+      "text": "By decree of the Chairmeow, sunbeams shall rotate among executives hourly."
+    },
+    {
+      "source": "contract_mixed",
+      "kind": "external_request",
+      "text": "Laser Dynamics requires 48 hours' notice before any calibration visit."
+    },
+    {
+      "source": "whiteboard_png",
+      "kind": "idea",
+      "text": "lap-sharing app??"
+    },
+    {
+      "source": "whiteboard_png",
+      "kind": "idea",
+      "text": "humans sit still = reward"
+    },
+    {
+      "source": "chat_webp",
+      "kind": "open_question",
+      "text": "can associates use them on weekends?"
+    },
+    {
+      "source": "tokyo_docx",
+      "kind": "open_question",
+      "text": "人間にも昼寝を許可すべきか？（継続審議）"
+    },
+    {
+      "source": "tokyo_docx",
+      "kind": "decision",
+      "text": "段ボール箱は役員専用とする。"
+    },
+    {
+      "source": "tokyo_png",
+      "kind": "idea",
+      "text": "膝のサブスク？"
+    },
+    {
+      "source": "tokyo_png",
+      "kind": "idea",
+      "text": "人間用キャットタワー"
+    },
+    {
+      "source": "rehearsal_vtt",
+      "kind": "idea",
+      "text": "We could maybe add a laser show at the end."
+    }
+  ]
+}
